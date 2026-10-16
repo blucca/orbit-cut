@@ -1,0 +1,51 @@
+name: Record Orbit Cut live XR demo
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IWSDK_GPU: swiftshader
+      NODE_OPTIONS: --max-old-space-size=4096
+      TMPDIR: ${{ github.workspace }}/temp
+      ORBIT_DEMO_OUTPUT: ${{ github.workspace }}/temp/demo
+      npm_config_cache: ${{ github.workspace }}/temp/npm-cache
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/temp/pw-browsers
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p temp/demo
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencies and browser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+      - name: Typecheck and record real hand interaction
+        run: |
+          npm run --if-present typecheck
+          python3 scripts/record-demo.py --check
+          python3 scripts/record-demo.py
+      - name: Compress recorded footage
+        if: always()
+        run: |
+          if [ -f temp/demo/orbit-raw.webm ]; then
+            ffmpeg -hide_banner -y -i temp/demo/orbit-raw.webm -an -vf 'scale=1000:760:force_original_aspect_ratio=decrease,pad=1000:760:(ow-iw)/2:(oh-ih)/2' -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p -movflags +faststart temp/demo/orbit-raw.mp4
+            ffprobe -v error -show_streams -show_format -of json temp/demo/orbit-raw.mp4 > temp/demo/video-probe.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: orbit-live-xr-demo
+          retention-days: 7
+          path: |
+            temp/demo/*.mp4
+            temp/demo/*.json
+            temp/demo/*.png
+            temp/demo/*.log
+            .iwsdk/runtime/logs/*.log

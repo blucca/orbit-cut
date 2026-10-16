@@ -1,0 +1,114 @@
+{
+  "verified_at": "2026-10-17T06:51:37.906967+08:00",
+  "source_commit": "0fd9fe23c63568ce8b76cc45e1218b913ca9ab99",
+  "actions": "https://github.com/blucca/orbit-cut/actions/runs/38977322417",
+  "result": "Spherical MP4 tagging, native playback/seeks, XR export and production deployment passed",
+  "metadata": {
+    "standard": "Google Spatial Media v1",
+    "specification": "https://github.com/google/spatial-media/blob/master/docs/spherical-video-rfc.md",
+    "location": "moov.trak.uuid on the video track",
+    "uuid": "ffcc8263-f855-4a93-8814-587a02521fdd",
+    "projection": "equirectangular",
+    "stereo_mode": "mono",
+    "added_bytes": 470,
+    "pixel_transform": "Applied during the existing real-time render; tagging adds no encoding pass"
+  },
+  "container_cases_exercised": [
+    "Progressive MP4 with moov before media",
+    "Progressive MP4 with moov after media",
+    "Native Chromium fragmented MP4 with moof-relative tfhd and tfra seeks"
+  ],
+  "tagging_only_preservation": [
+    {
+      "source": "moving-source.mp4",
+      "addedBytes": 470,
+      "spherical": {
+        "side_data_type": "Spherical Mapping",
+        "projection": "equirectangular",
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0
+      },
+      "unchangedPackets": 178
+    },
+    {
+      "source": "orbit-demo.mp4",
+      "addedBytes": 470,
+      "spherical": {
+        "side_data_type": "Spherical Mapping",
+        "projection": "equirectangular",
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0
+      },
+      "unchangedPackets": 852
+    }
+  ],
+  "native_playback": {
+    "mimeType": "video/mp4;codecs=vp9,opus",
+    "sourceDuration": 12,
+    "exportedDuration": 11.999667,
+    "audioDuration": 11.92,
+    "restoredTime": 9,
+    "movingDuration": 2.922033,
+    "movingAudioDuration": 2.8599773242630384,
+    "movingSegmentPixelDifferences": [
+      0.980865478515625,
+      0.7849222819010416,
+      0.7357991536458334
+    ],
+    "movingMotionDifferences": [
+      19.607961018880207,
+      20.62353515625,
+      28.729929606119793
+    ],
+    "movingSpherical": {
+      "side_data_type": "Spherical Mapping",
+      "projection": "equirectangular",
+      "yaw": 0,
+      "pitch": 0,
+      "roll": 0
+    }
+  },
+  "independent_reader": {
+    "name": "MediaInfo CLI / MediaInfoLib 26.10 (Arch Linux official binary packages)",
+    "method": "Direct file parsing without a forced projection",
+    "detected": [
+      {
+        "Format": "Spherical Video",
+        "Spherical": "true",
+        "Stitched": "true",
+        "StitchingSoftware": "Orbit Cut",
+        "ProjectionType": "equirectangular"
+      }
+    ],
+    "dimensions": [
+      320,
+      160
+    ],
+    "same_dimensions_untagged_control_spatial": null
+  },
+  "xr": {
+    "runtime_gate_passed": true,
+    "export_status": "360° MP4 ready (vp9,opus). Leave immersion to save again.",
+    "two_cut_yaws": [
+      -54.99999237060547,
+      35.0000114440918
+    ],
+    "previous_correction_retained": -54.99999237060547,
+    "same_viewpoint_panorama": true
+  },
+  "public_entry": {
+    "url": "https://blucca.github.io/orbit-cut/",
+    "title": "Orbit Cut — keep the story in view",
+    "script": "https://blucca.github.io/orbit-cut/assets/index-BuG7jRz7.js",
+    "script_status": 200,
+    "spherical_metadata_code": true,
+    "360_export_feedback": true
+  },
+  "quality_scope": {
+    "output": "Native real-time review video up to30fps; variable timing and the recorded audio endpoints remain as measured",
+    "device_evidence": "Chromium software encoding and emulated XR; physical Quest codec and performance measurements await an operator",
+    "layout_boundary": "The tagger reports an error for sidx or non-moof-relative fragment layouts; these were absent in the tested native recorder output"
+  }
+}

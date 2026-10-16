@@ -6,7 +6,7 @@ Two matching lenses show the corrected previous shot and the video after a cut. 
 
 **A seated, two-cut workbench.** Open a local monoscopic 2:1 MP4, choose up to two cut times, and keep each shot's correction. The built-in twelve-second synthetic exercise has cuts at 4 and 8 seconds, with source headings of 0°, +55°, and -35°. Try **Waterfall practice** for an attributed real-camera clip with an intentionally added cut. Video files are processed in the browser. [Media sources and modifications](public/media/SOURCES.md).
 
-[Open the workbench](https://blucca.github.io/orbit-cut/) · [Two-cut interaction and media receipt](docs/two-cut-proof.json) · [Real-camera export measurements](docs/real-media-proof.json)
+[Open the workbench](https://blucca.github.io/orbit-cut/) · [Two-cut interaction and media receipt](docs/two-cut-proof.json) · [Real-camera export measurements](docs/real-media-proof.json) · [360 export recognition](docs/spherical-export-proof.json)
 
 Have a Quest and eight minutes? [Try the editing task and tell us where it gets awkward.](docs/quest-playtest.md)
 
@@ -24,7 +24,7 @@ Have a Quest and eight minutes? [Try the editing task and tell us where it gets 
 
 ![Corrected panorama reviewed from the same viewing direction](docs/two-cut-panorama.png)
 
-Review export uses the browser's native recorder, up to 30 fps. It prefers H.264/AAC when available; Chromium's tested fallback is an MP4 containing VP9/Opus. The exact format is shown after export. Frame-exact delivery, spherical metadata, and physical Quest performance are the next quality milestones.
+Review export uses the browser's native recorder, up to 30 fps. It prefers H.264/AAC when available; Chromium's tested fallback is an MP4 containing VP9/Opus. The exact format is shown after export. Exports carry explicit monoscopic equirectangular 360° metadata (Spatial Media v1). FFmpeg and MediaInfo recognize the projection, while native-browser checks retain playback, sound and seeks. The tagging step preserves encoded packets and timestamps. Frame-exact delivery and physical Quest performance remain quality milestones.
 
 ## Run and verify
 
@@ -37,7 +37,7 @@ ORBIT_MEDIA_OUTPUT="$PWD/temp/media" node scripts/media-smoke.mjs
 npm run build
 ```
 
-The media check needs FFmpeg. It imports two synthetic videos, rotates actual decoded frames, exports and reopens the MP4, measures the changed pixels, and checks the soundtrack. The XR check uses the SDK's controller and hand inputs rather than changing application state directly. GitHub Actions retains the resulting receipts and images, and publishes successful builds to Pages.
+The media check needs FFmpeg. It imports two synthetic videos, rotates actual decoded frames, exports and reopens the MP4, measures the changed pixels, checks the soundtrack, and verifies spherical metadata and unchanged packet payloads/timestamps for the tagging step. The XR check uses the SDK's controller and hand inputs rather than changing application state directly. GitHub Actions retains the resulting receipts and images, and publishes successful builds to Pages.
 
 XR is an immersive session. [IWSDK's testing guide](https://iwsdk.dev/guides/02-testing-experience.html) describes it; [IWER](https://meta-quest.github.io/immersive-web-emulation-runtime) provides the browser emulator used by the checks. A controller's target ray points at controls; its grip pose is where an object is held. [IWSDK's interaction guide](https://iwsdk.dev/concepts/interaction/grabbing.html) covers those input paths. The app's entity-component system (ECS) keeps editing state inspectable through named components; see [IWSDK concepts](https://iwsdk.dev/concepts/).
 

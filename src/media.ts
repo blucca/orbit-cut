@@ -137,6 +137,12 @@ export class MediaSession {
     await Promise.all([resumed, sought, this.video.play()]);
   }
 
+  interruptExport(): boolean {
+    if (!this.cancelExport) return false;
+    this.cancelExport();
+    return true;
+  }
+
   async exportMp4(): Promise<Blob> {
     this.requireReady();
     this.requireEditable();
@@ -162,8 +168,23 @@ export class MediaSession {
     let onEnded: (() => void) | undefined;
     let onError: (() => void) | undefined;
     const videoFrames = typeof video.requestVideoFrameCallback === 'function';
+    const controller = new AbortController();
+    const { signal } = controller;
+    const interrupted = new Promise<never>((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    });
+    const duringExport = async <T>(operation: Promise<T>): Promise<T> => {
+      const value = await Promise.race([operation, interrupted]);
+      signal.throwIfAborted();
+      return value;
+    };
+    this.cancelExport = () => {
+      controller.abort(new Error('MP4 export cancelled.'));
+      video.pause();
+    };
     this.recording = true;
     video.pause();
+    let exported: Blob;
 
     try {
       // Native Web Audio keeps the decoded soundtrack tied to normal-speed playback.
@@ -176,8 +197,8 @@ export class MediaSession {
       audioDestination = this.audioContext.createMediaStreamDestination();
       this.audioSource.connect(audioDestination);
       this.previewGain!.gain.value = 0;
-      await this.audioContext.resume();
-      await seekVideo(video, 0);
+      await duringExport(this.audioContext.resume());
+      await duringExport(seekVideo(video, 0, signal));
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -213,25 +234,26 @@ export class MediaSession {
         onError = () => reject(new Error('Video decoding stopped during export.'));
         video.addEventListener('ended', onEnded, { once: true });
         video.addEventListener('error', onError, { once: true });
-        this.cancelExport = () => reject(new Error('MP4 export cancelled.'));
         timeout = setTimeout(() => reject(new Error('Export timed out. Keep this tab visible and try again.')), (video.duration + 20) * 1000);
+        recorder!.start(1000);
+        video.muted = false;
+        video.volume = 1;
+        video.playbackRate = 1;
+        void video.play().catch(reject);
       });
-      recorder.start(1000);
-      video.muted = false;
-      video.volume = 1;
-      video.playbackRate = 1;
-      const [, blob] = await Promise.all([video.play(), result]);
-      this.exportMimeType = blob.type;
-      return await tagSphericalMp4(blob);
+      const blob = await duringExport(result);
+      exported = await duringExport(tagSphericalMp4(blob));
     } finally {
-      this.cancelExport = undefined;
       if (timeout) clearTimeout(timeout);
       if (videoFrames) video.cancelVideoFrameCallback(frameHandle);
       else cancelAnimationFrame(frameHandle);
       video.pause();
       if (onEnded) video.removeEventListener('ended', onEnded);
       if (onError) video.removeEventListener('error', onError);
-      if (recorder && recorder.state !== 'inactive') recorder.stop();
+      if (recorder) {
+        recorder.ondataavailable = recorder.onerror = recorder.onstop = null;
+        if (recorder.state !== 'inactive') recorder.stop();
+      }
       for (const track of stream?.getTracks() ?? []) track.stop();
       if (audioDestination) {
         this.audioSource?.disconnect(audioDestination);
@@ -242,13 +264,22 @@ export class MediaSession {
       video.volume = oldVolume;
       video.playbackRate = oldRate;
       try {
-        if (this.ready && !video.error) await seekVideo(video, oldTime);
-      } finally { this.recording = false; }
+        if (this.ready && !video.error) {
+          // Paused/hidden pages can defer seeked; restoring the playhead must not delay cancellation.
+          if (signal.aborted) video.currentTime = oldTime;
+          else await duringExport(seekVideo(video, oldTime, signal));
+        }
+      } finally {
+        this.cancelExport = undefined;
+        this.recording = false;
+      }
     }
+    this.exportMimeType = exported.type;
+    return exported;
   }
 
   destroy(): void {
-    this.cancelExport?.();
+    this.interruptExport();
     this.video.pause();
     this.video.removeAttribute('src');
     this.video.load();
@@ -298,24 +329,29 @@ function yawAtTime(cuts: ReadonlyArray<Cut>, seconds: number): number {
   return yaw;
 }
 
-function mediaEvent(video: HTMLVideoElement, name: string): Promise<void> {
+function mediaEvent(video: HTMLVideoElement, name: string, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const finish = () => { cleanup(); resolve(); };
     const failed = () => { cleanup(); reject(new Error('This MP4 could not be decoded. Try an H.264/AAC MP4.')); };
+    const aborted = () => { cleanup(); reject(signal!.reason); };
     const timeout = setTimeout(() => { cleanup(); reject(new Error('Video loading timed out. Try loading the MP4 again.')); }, 20_000);
     const cleanup = () => {
       clearTimeout(timeout);
       video.removeEventListener(name, finish);
       video.removeEventListener('error', failed);
+      signal?.removeEventListener('abort', aborted);
     };
     video.addEventListener(name, finish, { once: true });
     video.addEventListener('error', failed, { once: true });
+    signal?.addEventListener('abort', aborted, { once: true });
+    if (signal?.aborted) aborted();
   });
 }
 
-async function seekVideo(video: HTMLVideoElement, seconds: number): Promise<void> {
+async function seekVideo(video: HTMLVideoElement, seconds: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
   if (Math.abs(video.currentTime - seconds) < 0.001 && video.readyState >= 2) return;
-  const seeked = mediaEvent(video, 'seeked');
+  const seeked = mediaEvent(video, 'seeked', signal);
   video.currentTime = seconds;
   await seeked;
 }

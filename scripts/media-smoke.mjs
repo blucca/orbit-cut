@@ -140,6 +140,8 @@ try {
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--autoplay-policy=no-user-gesture-required'],
   });
   const page = await browser.newPage();
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   const result = await page.evaluate(async (metadata) => {
     const { MediaSession } = await import('/media.js');
@@ -237,6 +239,88 @@ try {
       expectedFrames.push(await frame(moving, time, moving.yawAt(time)));
       sourceFrames.push(await frame(moving, time));
     }
+    const interruptionChecks = [];
+    const bounded = async (promise) => {
+      let timeout;
+      try {
+        return await Promise.race([promise, new Promise((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error('Export interruption check timed out.')), 5000);
+        })]);
+      } finally { clearTimeout(timeout); }
+    };
+    for (const phase of ['audio-resume', 'initial-seek', 'recording']) {
+      await moving.seek(2.5);
+      moving.video.volume = 0.4;
+      moving.video.playbackRate = 1.25;
+      const savedCuts = moving.cuts;
+      const saved = {
+        src: moving.video.src, selected: moving.selectedCutIndex, time: moving.video.currentTime,
+        muted: moving.video.muted, volume: moving.video.volume, rate: moving.video.playbackRate,
+        mimeType: moving.lastExportMimeType,
+      };
+      let reachPhase;
+      const reached = new Promise(resolve => { reachPhase = resolve; });
+      let releaseResume;
+      let recorder;
+      const tracks = [];
+      const NativeRecorder = window.MediaRecorder;
+      const nativeResume = AudioContext.prototype.resume;
+      const nativeDestination = AudioContext.prototype.createMediaStreamDestination;
+      const nativeAddListener = moving.video.addEventListener;
+      window.MediaRecorder = class extends NativeRecorder {
+        constructor(...args) {
+          super(...args);
+          recorder = this;
+          if (phase === 'recording') this.addEventListener('start', () => setTimeout(reachPhase, 200), { once: true });
+        }
+      };
+      AudioContext.prototype.createMediaStreamDestination = function () {
+        const destination = nativeDestination.call(this);
+        tracks.push(...destination.stream.getTracks());
+        return destination;
+      };
+      if (phase === 'audio-resume') AudioContext.prototype.resume = function () {
+        reachPhase();
+        return new Promise((resolve, reject) => {
+          releaseResume = () => nativeResume.call(this).then(resolve, reject);
+        });
+      };
+      if (phase === 'initial-seek') moving.video.addEventListener = function (name, ...args) {
+        if (name === 'seeked') { reachPhase(); return; } // Hold this one native event until cancellation.
+        return nativeAddListener.call(this, name, ...args);
+      };
+      try {
+        const idleInterrupt = moving.interruptExport();
+        const pending = moving.exportMp4().then(blob => ({ bytes: blob.size }), error => ({ error: error.message }));
+        await bounded(Promise.race([reached, pending.then(() => { throw new Error(`Export ended before ${phase}.`); })]));
+        const activeRecorder = recorder?.state === 'recording';
+        const start = performance.now();
+        const interrupted = moving.interruptExport();
+        const outcome = await bounded(pending);
+        const elapsedMs = performance.now() - start;
+        const retained = moving.ready && moving.cuts === savedCuts && moving.selectedCutIndex === saved.selected &&
+          moving.video.src === saved.src && Math.abs(moving.video.currentTime - saved.time) < 0.01 &&
+          moving.video.muted === saved.muted && moving.video.volume === saved.volume &&
+          moving.video.playbackRate === saved.rate && moving.lastExportMimeType === saved.mimeType;
+        tracks.push(...(recorder?.stream.getTracks() ?? []));
+        interruptionChecks.push({
+          phase, idleInterrupt, interrupted, outcome, elapsedMs, retained, paused: moving.video.paused,
+          recorderStarted: !!recorder, activeRecorder, stopped: !recorder || recorder.state === 'inactive',
+          tracksStopped: tracks.length > 0 && tracks.every(track => track.readyState === 'ended'),
+          settledInterrupt: moving.interruptExport(),
+        });
+      } finally {
+        window.MediaRecorder = NativeRecorder;
+        AudioContext.prototype.resume = nativeResume;
+        AudioContext.prototype.createMediaStreamDestination = nativeDestination;
+        moving.video.addEventListener = nativeAddListener;
+        await releaseResume?.();
+      }
+      // A late resume completion must leave the cancelled film editable.
+      moving.setYaw(moving.yawDegrees);
+      await moving.seek(2.5);
+    }
+    measurements.interruptionChecks = interruptionChecks;
     const pendingExport = moving.exportMp4();
     const recordingLocks = [];
     for (const [name, edit] of [
@@ -287,6 +371,7 @@ try {
     return measurements;
   }, metadata);
   const { base64, movingBase64, ...measurements } = result;
+  assert.deepEqual(pageErrors, [], 'native export raises no unhandled browser errors');
   measurements.timelineChecks = timelineChecks;
   measurements.metadataChecks = metadataChecks;
   await writeFile(path.join(out, 'orbit-corrected.mp4'), Buffer.from(base64, 'base64'));
@@ -312,6 +397,16 @@ try {
   assert.ok(Math.abs(result.restoredTime - 9) < 0.05, 'export restores preview time');
   assert.deepEqual(result.movingCuts, [{ seconds: 1, yawDegrees: 90 }, { seconds: 2, yawDegrees: -90 }]);
   assert.deepEqual(result.recordingLocks, ['yaw', 'cut', 'selection', 'add', 'remove', 'seek', 'play', 'play-from', 'demo', 'file', 'export']);
+  for (const check of result.interruptionChecks) {
+    assert.equal(check.idleInterrupt, false);
+    assert.equal(check.interrupted, true);
+    assert.deepEqual(check.outcome, { error: 'MP4 export cancelled.' }, `${check.phase} discards partial output`);
+    assert.ok(check.elapsedMs < 1000, `${check.phase} cancellation settles promptly`);
+    assert.ok(check.retained && check.paused && check.stopped && check.tracksStopped, `${check.phase} restores the editable film and stops capture`);
+    assert.equal(check.recorderStarted, check.phase === 'recording');
+    assert.equal(check.activeRecorder, check.phase === 'recording');
+    assert.equal(check.settledInterrupt, false);
+  }
   assert.deepEqual(result.reimportedCuts, [{ seconds: 1.5, yawDegrees: 0 }], 'import resets to a single uncorrected cut');
   for (const [index, error] of result.movingSegmentPixelDifferences.entries()) {
     assert.ok(error < 12, `shot ${index + 1} pixels match its absolute yaw (error ${error.toFixed(2)})`);

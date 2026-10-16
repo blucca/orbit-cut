@@ -268,7 +268,7 @@ export class OrbitSystem extends createSystem({
       next = 'Export again';
     } else if (this.exportStatus === 'exporting') {
       stage = 'exporting'; title = 'Recording your corrected film'; next = 'Stop export';
-      hint = 'Export takes the length of your film. Keep this tab visible. Pause stops safely.';
+      hint = 'Preview is paused during export. Keep this tab visible. Pause stops safely.';
     }
     if (this.paused) {
       stage = 'paused'; progress = `Paused on Cut ${this.media.selectedCutIndex + 1}`;
@@ -540,6 +540,11 @@ export class OrbitSystem extends createSystem({
     this.busy = true;
     this.exportStatus = 'exporting';
     this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
+    // Keep the cancel panel responsive while the recorder processes full-size frames.
+    this.optical.visible = false;
+    this.panorama.visible = false;
+    this.ring.object3D!.visible = false;
+    this.state.setValue(OrbitCutState, 'panoramaVisible', false);
     this.refreshTask();
     let errorMessage = '';
     try {
@@ -556,6 +561,10 @@ export class OrbitSystem extends createSystem({
       errorMessage = String(error);
     } finally {
       this.busy = false;
+      this.optical.visible = !this.reviewing;
+      this.panorama.visible = this.reviewing;
+      this.ring.object3D!.visible = !this.reviewing;
+      this.state.setValue(OrbitCutState, 'panoramaVisible', this.reviewing);
       this.refreshTask();
       if (errorMessage && !this.paused) this.message(errorMessage);
       if (this.exportStatus === 'ready') this.message(`360 MP4 ready (${this.media.lastExportMimeType.replace('video/mp4;codecs=', '')}). Leave immersion to save again.`);

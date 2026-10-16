@@ -181,7 +181,7 @@ if __name__ == '__main__':
                 for value in data:
                     found = named_uuid(value, name)
                     if found: return found
-        def click(name, label=None):
+        def click(name, label=None, inspect_input=False):
             global hierarchy
             label = label or name
             uuid = named_uuid(hierarchy, name)
@@ -194,7 +194,13 @@ if __name__ == '__main__':
             assert target, 'XR-relative control position missing'
             if isinstance(target, list): target = dict(zip(('x','y','z'), target))
             call(f'{label}-aim', 'xr look-at', {'device': 'hand-right', 'target': target})
+            if inspect_input:
+                call(f'{label}-before-panel', 'ecs query', {'entityIndex': panel_id})
+                call(f'{label}-before-ui', 'ui inspect', {'entityIndex': panel_id, 'selector': f'#{name}'})
             call(f'{label}-click', 'xr select', {'device': 'hand-right', 'duration': .2})
+            if inspect_input:
+                call(f'{label}-after-panel', 'ecs query', {'entityIndex': panel_id})
+                call(f'{label}-after-ui', 'ui inspect', {'entityIndex': panel_id, 'selector': f'#{name}'})
 
         def task_state(label, next_label=None, timeout=10, **expected):
             deadline = time.monotonic() + timeout
@@ -336,7 +342,7 @@ if __name__ == '__main__':
 
         click('task-next', 'guided-export')
         task_state('task-exporting', taskStage='exporting', exportState='exporting', workPaused=False)
-        click('pause-work', 'export-pause')
+        click('pause-work', 'export-pause', inspect_input=True)
         interrupted = task_state('task-export-interrupted', next_label='Continue', taskStage='paused',
                                  exportState='interrupted', workPaused=True)
         assert key(interrupted, 'selectedCut') == 1 and abs(key(interrupted, 'yawDegrees') - 35) < 2
@@ -355,6 +361,7 @@ if __name__ == '__main__':
         receipt['guided_task']['completed_screenshot'] = 'xr-completed.png'
         receipt['pause_resume']['export'] = {'states': ['exporting', 'interrupted', 'ready'],
                                             'waited_for_continue': True, 'retained_cut_yaw_reference': True,
+                                            'pause_control_input': 'hand select, 0.2 seconds; panel/UI before and after saved',
                                             'retry_control': 'task-next'}
         call('runtime-completed', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-completed.png')))
 

@@ -1,4 +1,4 @@
-"""One unchanged starter-scene XR interaction, with explicit saved evidence."""
+"""Orbit Cut: real media, emulated controller and hand-pinch yaw interaction."""
 import json
 import math
 import os
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         print('Receipt parsing checks passed')
         raise SystemExit(0)
     receipt = {'started_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-               'runtime_gate_passed': False, 'scene': 'unchanged IWSDK starter',
+               'runtime_gate_passed': False, 'scene': 'Orbit Cut optical workbench',
                'rendering': 'headless SwiftShader; browser XR emulator',
                'host_meminfo': Path('/proc/meminfo').read_text().splitlines()[:3]}
     log = (OUT / 'runtime.log').open('w')
@@ -101,32 +101,71 @@ if __name__ == '__main__':
         status = call('xr-active', 'xr status', {})
         assert key(status, 'sessionActive') is True, 'XR session did not activate'
 
-        found = call('plant-find', 'ecs find', {'namePattern': '^Plant Sansevieria$', 'limit': 5})
-        entity = key(found, 'entityIndex')
-        assert isinstance(entity, int), 'Named plant entity missing'
-        before = call('plant-before', 'ecs query', {'entityIndex': entity})
-        assert 'DistanceGrabbable' in json.dumps(before), 'Wrong interaction contract'
-        start = position(before)
-        controller = position(call('controller-before', 'xr get-transform', {'device': 'controller-right'}))
-        distance = math.dist(start, controller)
-        destination = dict(zip(('x', 'y', 'z'), [start[0] - .5, start[1] + .25, start[2]]))
-        call('aim', 'xr look-at', {'device': 'controller-right', 'target': dict(zip(('x', 'y', 'z'), start))})
-        call('hold', 'xr set-gamepad-state', {'device': 'controller-right', 'buttons': [{'index': 0, 'value': 1}]})
-        time.sleep(.5)
-        call('plant-held', 'ecs query', {'entityIndex': entity})
-        call('move', 'xr look-at', {'device': 'controller-right', 'target': destination, 'moveToDistance': distance})
-        time.sleep(.5)
-        moved = call('plant-moved', 'ecs query', {'entityIndex': entity})
-        call('release', 'xr set-gamepad-state', {'device': 'controller-right', 'buttons': [{'index': 0, 'value': 0}]})
-        time.sleep(.5)
-        final = call('plant-final', 'ecs query', {'entityIndex': entity})
-        end = position(final)
-        assert math.dist(start, end) > .2, 'Real controller input did not move the plant'
-        assert math.dist(position(moved), end) < .1, 'Released plant failed to keep its moved position'
+        state_id = key(call('state-find', 'ecs find', {'namePattern': '^orbit-cut-state$', 'limit': 2}), 'entityIndex')
+        ring_id = key(call('ring-find', 'ecs find', {'namePattern': '^orbit-yaw-ring$', 'limit': 2}), 'entityIndex')
+        panel_id = key(call('panel-find', 'ecs find', {'namePattern': '^workbench-panel$', 'limit': 2}), 'entityIndex')
+        assert all(isinstance(v, int) for v in [state_id, ring_id, panel_id]), 'Named workbench entities missing'
+        deadline = time.monotonic() + 30
+        while True:
+            initial = call('state-initial', 'ecs query', {'entityIndex': state_id})
+            if key(initial, 'mediaReady') is True:
+                break
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Demo MP4 failed to become ready')
+            time.sleep(1)
+        assert abs(key(initial, 'yawDegrees')) < .1
+        assert key(initial, 'grabCount') == 0
+        call('ui-assets', 'ui assets', {})
+        call('ui-preview', 'ui render-preview', {'assetId': 'workbench-panel', 'width': 640, 'height': 360},
+             extra=('--output-file', str(OUT / 'ui-preview.png')))
+        scene = call('scene-hero', 'scene render-file', {'path': 'public/scenes/main.iwsdk.scene.json', 'viewId': 'hero'},
+                     extra=('--output-file', str(OUT / 'scene-hero.png')))
+        assert key(scene, 'valid') is True, 'Scene validation failed'
+        call('scene-state', 'scene state', {})
+        call('ui-initial', 'ui inspect', {'entityIndex': panel_id})
+        call('runtime-before', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-before.png')))
+        interactions = []
+        for device, delta in [('controller-right', -25), ('hand-right', -30)]:
+            mode = 'hand' if device.startswith('hand') else 'controller'
+            if mode == 'hand':
+                call('hand-mode', 'xr set-input-mode', {'mode': 'hand'})
+                time.sleep(.4)
+            ring = call(f'{mode}-ring-before', 'ecs query', {'entityIndex': ring_id})
+            center = position(ring)
+            state_before = call(f'{mode}-state-before', 'ecs query', {'entityIndex': state_id})
+            yaw_before = key(state_before, 'yawDegrees')
+            call(f'{mode}-aim', 'xr look-at', {'device': device, 'target': dict(zip(('x', 'y', 'z'), center))})
+            pose = call(f'{mode}-pose', 'xr get-transform', {'device': device})
+            euler = key(pose, 'euler')
+            assert isinstance(euler, dict), 'Measured input pose missing'
+            call(f'{mode}-hold', 'xr set-select-value', {'device': device, 'value': 1})
+            time.sleep(.4)
+            held = call(f'{mode}-held', 'ecs query', {'entityIndex': state_id})
+            assert key(held, 'isDragging') is True, f'{mode} failed to grab through native input'
+            call(f'{mode}-rotate', 'xr set-transform', {'device': device, 'orientation': {
+                'pitch': euler['pitch'], 'yaw': euler['yaw'] + delta, 'roll': euler['roll']}})
+            time.sleep(.4)
+            moved = call(f'{mode}-moved', 'ecs query', {'entityIndex': state_id})
+            call(f'{mode}-release', 'xr set-select-value', {'device': device, 'value': 0})
+            time.sleep(.4)
+            final = call(f'{mode}-final', 'ecs query', {'entityIndex': state_id})
+            yaw = key(final, 'yawDegrees')
+            assert abs(yaw - yaw_before) > 10, f'{mode} failed to change the image yaw'
+            assert abs(yaw - key(moved, 'yawDegrees')) < 1, 'Released correction did not hold'
+            assert key(final, 'isDragging') is False, 'Native grab did not release'
+            assert abs(key(final, 'previewYawDegrees') - yaw) < .2, 'Video preview did not use the edited yaw'
+            if mode == 'hand':
+                assert key(final, 'inputKind') == 'hand-pinch', 'Hand source was not observed'
+            interactions.append({'input': mode, 'initial_yaw': yaw_before, 'final_yaw': yaw,
+                                 'held': True, 'released': True, 'preview_yaw': key(final, 'previewYawDegrees')})
+        call('ui-final', 'ui inspect', {'entityIndex': panel_id})
+        call('runtime-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
         assert key(call('xr-final', 'xr status', {}), 'sessionActive') is True
         call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-final.png')))
-        receipt.update(runtime_gate_passed=True, entity_index=entity, initial_position=start,
-                       final_position=end, moved_metres=math.dist(start, end))
+        call('console-final', 'browser logs', {'count': 30})
+        receipt.update(runtime_gate_passed=True, media_ready=True, state_entity=state_id,
+                       interactions=interactions, final_yaw=key(final, 'yawDegrees'),
+                       aligned=key(final, 'aligned'), scope='Emulated hand/controller input; no physical Quest performance claim')
     except Exception as error:
         receipt['error'] = f'{type(error).__name__}: {error}'
         try:

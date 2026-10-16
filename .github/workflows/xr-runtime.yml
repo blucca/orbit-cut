@@ -1,7 +1,9 @@
-name: XR runtime gate
+name: Orbit Cut runtime and media
 on: [push, workflow_dispatch]
 permissions:
   contents: read
+  pages: write
+  id-token: write
 concurrency:
   group: xr-runtime-${{ github.ref }}
   cancel-in-progress: true
@@ -29,6 +31,8 @@ jobs:
         run: |
           npm run --if-present typecheck
           python3 scripts/xr-smoke.py
+      - name: Native MP4 pixel export and reopen
+        run: ORBIT_MEDIA_OUTPUT="$PWD/temp/media" node scripts/media-smoke.mjs
       - name: Production build
         run: npm run build
       - uses: actions/upload-artifact@v4
@@ -40,4 +44,19 @@ jobs:
             temp/*.json
             temp/*.png
             temp/*.log
+            temp/media/
             .iwsdk/runtime/logs/*.log
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: runtime
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish tested workbench
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -3,107 +3,53 @@
   "units": "meters",
   "components": {
     "com.iwsdk.components.DomeGradient": {
-      "sky": [0.2423, 0.6172, 0.8308, 1],
-      "equator": [0.6584, 0.7084, 0.7913, 1],
-      "ground": [0.807, 0.7758, 0.7454, 1],
-      "intensity": 1
-    },
-    "com.iwsdk.components.IBLGradient": {
-      "sky": [0.6902, 0.749, 0.7843, 1],
-      "equator": [0.6584, 0.7084, 0.7913, 1],
-      "ground": [0.807, 0.7758, 0.7454, 1],
+      "sky": [0.020, 0.025, 0.072, 1],
+      "equator": [0.052, 0.064, 0.139, 1],
+      "ground": [0.015, 0.018, 0.046, 1],
       "intensity": 1
     }
   },
   "resources": {},
+  "authoring": {
+    "views": [{
+      "id": "hero", "role": "hero", "projection": "perspective",
+      "position": [0, 1.6, 0.1], "target": [0, 1.39, -0.72], "fov": 60
+    }]
+  },
   "nodes": [
     {
-      "id": "environment",
-      "name": "Environment",
-      "content": {
-        "type": "asset",
-        "asset": "environment-desk"
-      },
-      "transform": {
-        "position": [0, -0.106921583, 0],
-        "rotationDeg": [0, 180, 0]
-      },
-      "components": {
-        "LocomotionEnvironment": {}
-      }
+      "id": "orbit-cut-state", "name": "orbit-cut-state",
+      "components": {"OrbitCutState": {
+        "yawDegrees": 0, "activeShot": "after", "isDragging": false,
+        "inputKind": "none", "sourceOffsetDegrees": 55, "residualDegrees": 55,
+        "aligned": false, "grabCount": 0, "cutCount": 0,
+        "mediaReady": false, "previewYawDegrees": 0
+      }}
     },
     {
-      "id": "plant-sansevieria",
-      "name": "Plant Sansevieria",
-      "content": {
-        "type": "asset",
-        "asset": "plant-sansevieria"
-      },
-      "transform": {
-        "position": [1.2, 0.85, -1.8]
-      },
+      "id": "optical-frame", "name": "optical-frame",
+      "content": {"type": "asset", "asset": "optical-frame"},
+      "transform": {"position": [0, 1.48, -0.75]},
+      "components": {"WorkbenchPart": {}}
+    },
+    {
+      "id": "orbit-yaw-ring", "name": "orbit-yaw-ring",
+      "content": {"type": "asset", "asset": "yaw-wheel"},
+      "transform": {"position": [0, 1.12, -0.51]},
       "components": {
-        "RayInteractable": {},
+        "WorkbenchPart": {}, "YawRing": {}, "RayInteractable": {},
         "DistanceGrabbable": {
-          "movementMode": "MoveFromTarget"
-        }
-      }
-    },
-    {
-      "id": "robot",
-      "name": "Robot",
-      "content": {
-        "type": "asset",
-        "asset": "robot"
-      },
-      "transform": {
-        "position": [-1.2, 0.95, -1.8],
-        "scale": 0.5
-      },
-      "components": {
-        "AudioSource": {
-          "src": "./audio/chime.mp3",
-          "maxInstances": 3,
-          "playbackMode": "fade-restart"
+          "movementMode": "RotateAtSource", "translate": false,
+          "rotate": true, "scale": false, "detachOnGrab": false
         },
-        "RayInteractable": {},
-        "Robot": {}
+        "OneHandGrabbable": {"translate": false, "rotate": true, "scale": false}
       }
     },
     {
-      "id": "welcome-panel",
-      "name": "Welcome Panel",
-      "content": {
-        "type": "asset",
-        "asset": "welcome-panel"
-      },
-      "transform": {
-        "position": [0, 1.6, -2],
-        "scale": 0.4
-      },
-      "components": {
-        "RayInteractable": {},
-        "ScreenSpace": {
-          "top": "20px",
-          "left": "20px",
-          "width": "25vw",
-          "height": "40%"
-        }
-      }
-    },
-    {
-      "id": "webxr-banner",
-      "name": "WebXR Banner",
-      "content": {
-        "type": "asset",
-        "asset": "webxr-banner"
-      },
-      "transform": {
-        "position": [0, 1, 1.8],
-        "rotationDeg": [0, 180, 0],
-        "scale": [1, -1, 1]
-      },
-      "components": {}
+      "id": "workbench-panel", "name": "workbench-panel",
+      "content": {"type": "asset", "asset": "workbench-panel"},
+      "transform": {"position": [0, 1.77, -0.76]},
+      "components": {"WorkbenchPart": {}, "RayInteractable": {}}
     }
   ]
 }

@@ -19,6 +19,10 @@ export const OrbitCutState = createComponent('OrbitCutState', {
   panoramaVisible: { type: Types.Boolean, default: false },
   correctedReview: { type: Types.Boolean, default: true },
   reviewYawDegrees: { type: Types.Float32, default: 0 },
+  completedCuts: { type: Types.Int32, default: 0 },
+  taskStage: { type: Types.String, default: 'align' },
+  workPaused: { type: Types.Boolean, default: false },
+  exportState: { type: Types.String, default: 'idle' },
 });
 
 export const YawRing = createComponent('YawRing', {});

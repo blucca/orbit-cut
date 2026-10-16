@@ -60,6 +60,11 @@ export class OrbitSystem extends createSystem({
   private lastReviewYaw = NaN;
   private lastActiveShot = '';
   private downloadUrl = '';
+  private paused = false;
+  private wasImmersive = false;
+  private timingVisible = false;
+  private completedCuts = 0;
+  private exportStatus: 'idle' | 'exporting' | 'interrupted' | 'failed' | 'ready' = 'idle';
 
   init(): void {
     this.state = this.world.requireSceneEntity('orbit-cut-state');
@@ -82,9 +87,21 @@ export class OrbitSystem extends createSystem({
     const on = (id: string, action: () => void) => {
       const element = this.panel.requireElementById(id);
       element.name = id;
-      element.addEventListener('click', action);
-      this.cleanupFuncs.push(() => element.removeEventListener('click', action));
+      const click = () => {
+        if (this.paused && id !== 'pause-work' && id !== 'task-next') return;
+        action();
+      };
+      element.addEventListener('click', click);
+      this.cleanupFuncs.push(() => element.removeEventListener('click', click));
     };
+    on('pause-work', () => this.togglePause());
+    on('task-next', () => { void this.nextTask(); });
+    on('cut-timing', () => {
+      if (this.busy) return;
+      this.timingVisible = !this.timingVisible;
+      this.panel.requireElementById('boundary-controls').setProperties({ display: this.timingVisible ? 'flex' : 'none' });
+      this.panel.requireElementById<UIKit.Text>('cut-timing-label').setProperties({ text: this.timingVisible ? 'Hide' : 'Timing' });
+    });
     on('turn-left', () => this.turn(-5));
     on('turn-right', () => this.turn(5));
     on('replay-cut', () => this.replay());
@@ -104,11 +121,11 @@ export class OrbitSystem extends createSystem({
     on('review-replay', () => { void this.playReview(0); });
     on('review-pause', () => { if (!this.busy) void this.pauseReview(); });
     on('review-export', () => { void this.export(); });
-    for (const id of ['hint', 'yaw-status', 'time-status', 'panel-surface']) {
+    for (const id of ['hint', 'yaw-status', 'time-status', 'panel-surface', 'task-progress', 'task-title']) {
       this.panel.requireElementById(id).name = id;
     }
     this.cleanupFuncs.push(this.queries.held.subscribe('qualify', () => {
-      if (this.busy || this.reviewing) { this.world.getSystem(GrabSystem)?.forceRelease(this.ring); return; }
+      if (this.busy || this.paused || this.reviewing) { this.world.getSystem(GrabSystem)?.forceRelease(this.ring); return; }
       this.state.setValue(OrbitCutState, 'isDragging', true);
       const hand = this.world.getSystem(GrabSystem)?.getHolderHand(this.ring);
       this.holder = hand ?? 'right';
@@ -128,24 +145,34 @@ export class OrbitSystem extends createSystem({
     const cutInput = document.querySelector<HTMLInputElement>('#cut-seconds')!;
     const xrButton = document.querySelector<HTMLButtonElement>('#enter-xr')!;
     const practiceButton = document.querySelector<HTMLButtonElement>('#practice-waterfall')!;
+    const pauseButton = document.querySelector<HTMLButtonElement>('#pause-work-desktop')!;
     const open = () => {
       const file = fileInput.files?.[0];
-      if (file && !this.busy) void this.load(file);
+      if (file && !this.busy && !this.paused) void this.load(file);
     };
     const cut = () => {
-      if (this.busy || !this.media.ready) return;
+      if (this.busy || this.paused || !this.media.ready) return;
       const seconds = Number(cutInput.value);
       void this.editCut(() => { this.media.cutSeconds = seconds; });
     };
     const enter = () => { void this.world.launchXR(); };
     const practice = () => { void this.loadPractice(); };
+    const pause = () => this.togglePause();
+    const hidden = () => { if (document.hidden) this.pauseWork('Tab paused. Your edits are kept here.'); };
+    const leaving = () => this.pauseWork('Session paused. Your edits are kept here.');
     fileInput.addEventListener('change', open);
     cutInput.addEventListener('change', cut);
     xrButton.addEventListener('click', enter);
     practiceButton.addEventListener('click', practice);
-    const playback = () => this.panel.requireElementById<UIKit.Text>('pause-label').setProperties({
-      text: this.media.video.paused ? 'Play' : 'Pause',
-    });
+    pauseButton.addEventListener('click', pause);
+    document.addEventListener('visibilitychange', hidden);
+    window.addEventListener('pagehide', leaving);
+    const playback = () => {
+      if (this.paused && !this.media.video.paused) this.media.video.pause();
+      this.panel.requireElementById<UIKit.Text>('pause-label').setProperties({
+        text: this.media.video.paused ? 'Play' : 'Pause',
+      });
+    };
     this.media.video.addEventListener('pause', playback);
     this.media.video.addEventListener('play', playback);
     this.cleanupFuncs.push(
@@ -153,13 +180,19 @@ export class OrbitSystem extends createSystem({
       () => cutInput.removeEventListener('change', cut),
       () => xrButton.removeEventListener('click', enter),
       () => practiceButton.removeEventListener('click', practice),
+      () => pauseButton.removeEventListener('click', pause),
+      () => document.removeEventListener('visibilitychange', hidden),
+      () => window.removeEventListener('pagehide', leaving),
       () => this.media.video.removeEventListener('pause', playback),
       () => this.media.video.removeEventListener('play', playback),
       this.world.visibilityState.subscribe(state => {
         const immersive = state !== VisibilityState.NonImmersive;
         document.querySelector<HTMLElement>('#file-bar')!.style.display = immersive ? 'none' : 'flex';
         if (state === VisibilityState.Visible) this.recenterFrames = 3;
-        if (state === VisibilityState.VisibleBlurred) this.media.video.pause();
+        if (state !== VisibilityState.Visible && this.wasImmersive) {
+          this.pauseWork('Immersive session paused. Your edits are kept here.');
+        }
+        this.wasImmersive = immersive;
       }),
       () => { this.media.destroy(); this.videoTexture.dispose(); this.referenceTexture.dispose(); this.preview.dispose(); this.reference.dispose(); this.panoramaView.dispose(); if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl); },
     );
@@ -169,6 +202,118 @@ export class OrbitSystem extends createSystem({
   private message(text: string): void {
     document.querySelector<HTMLElement>('#media-message')!.textContent = text;
     this.panel.requireElementById<UIKit.Text>('hint').setProperties({ text });
+  }
+
+  private pauseWork(reason: string): void {
+    if (!this.media.ready || this.paused) return;
+    this.paused = true;
+    this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
+    const interrupted = this.media.interruptExport();
+    this.media.video.pause();
+    if (interrupted) this.exportStatus = 'interrupted';
+    this.refreshTask();
+    this.message(interrupted ? 'Export stopped. Your edits and review position are kept. Continue to export again.' : reason + ' Select Continue to return.');
+  }
+
+  private togglePause(): void {
+    if (!this.paused) this.pauseWork('Work paused. Your edits are kept in this tab.');
+    else if (!this.busy) {
+      this.paused = false;
+      this.refreshTask();
+      // Continue restores the workbench; playback remains an explicit action.
+      this.message(this.reviewing ? 'Continue reviewing from this frame. Play when ready, or export again.' : `Continue with Cut ${this.media.selectedCutIndex + 1}. Earlier corrections are kept.`);
+    }
+  }
+
+  private alignmentCount(): number {
+    if (!this.knownOffset) return 0;
+    const cuts = this.media.cuts;
+    let completed = 0;
+    for (let i = 0; i < cuts.length; i++) {
+      const previous = i ? cuts[i - 1].yawDegrees : 0;
+      const residual = ((cuts[i].yawDegrees + this.sourceHeadings[i + 1] - this.sourceHeadings[i] - previous + 540) % 360) - 180;
+      if (Math.abs(residual) >= 3) break;
+      completed++;
+    }
+    return completed;
+  }
+
+  private refreshTask(): void {
+    const cuts = this.media.cuts;
+    this.completedCuts = this.alignmentCount();
+    let stage = 'align';
+    let progress = this.knownOffset ? `Practice: ${this.completedCuts} of ${cuts.length} cuts aligned` : `Cut ${this.media.selectedCutIndex + 1} of ${cuts.length}`;
+    let title = this.knownOffset ? `Align ${this.sourceCuts.length === 2 ? 'the beacon' : 'the path'} at Cut ${Math.min(this.completedCuts + 1, cuts.length)}` : 'Keep the subject in view';
+    let next = this.knownOffset && this.completedCuts < cuts.length ? (this.media.selectedCutIndex === this.completedCuts ? 'Replay cut' : `Go to Cut ${this.completedCuts + 1}`) : 'Review in 360';
+    let hint = 'Pinch the orange wheel and turn. Match the subject in the two windows.';
+    let color = '#171b35';
+    if (this.knownOffset && this.completedCuts === cuts.length) {
+      stage = 'review';
+      title = 'The story stays in view';
+      hint = 'The cuts line up. Review in 360, then compare Original and Corrected.';
+      color = '#17473f';
+    }
+    if (this.reviewing) {
+      stage = 'export';
+      title = 'Check the whole story around you';
+      hint = 'Compare Original and Corrected from the same view. Export when ready.';
+      next = 'Export 360 MP4';
+    }
+    if (this.exportStatus === 'ready') {
+      stage = 'complete'; progress = 'Task complete'; title = 'Your 360 MP4 is ready';
+      hint = 'The export is ready to save. Leave immersion to use Save last export again.';
+      next = this.reviewing ? 'Back to edit' : 'Review in 360'; color = '#17473f';
+    } else if (this.exportStatus === 'interrupted' || this.exportStatus === 'failed') {
+      title = this.exportStatus === 'interrupted' ? 'Export stopped. Edits kept.' : 'Export failed. Try again.';
+      next = 'Export again';
+    } else if (this.exportStatus === 'exporting') {
+      stage = 'exporting'; title = 'Recording your corrected film'; next = 'Stop export';
+      hint = 'Export takes the length of your film. Keep this tab visible. Pause stops safely.';
+    }
+    if (this.paused) {
+      stage = 'paused'; progress = `Paused on Cut ${this.media.selectedCutIndex + 1}`;
+      title = 'Your edits are kept in this tab'; next = this.busy ? 'Stopping...' : 'Continue';
+      hint = this.exportStatus === 'interrupted' ? 'Export stopped safely. Continue, then export again.' : 'Continue when ready. Your film stays on the same frame.';
+      color = '#353353';
+    }
+    if (!this.media.ready) {
+      stage = this.busy ? 'loading' : 'load-error'; progress = 'Two cuts, one story';
+      title = this.busy ? 'Loading your film' : 'Choose a playable 360 MP4';
+      next = this.busy ? 'Loading...' : 'Open a video';
+    }
+    this.state.setValue(OrbitCutState, 'completedCuts', this.completedCuts);
+    this.state.setValue(OrbitCutState, 'taskStage', stage);
+    this.state.setValue(OrbitCutState, 'workPaused', this.paused);
+    this.state.setValue(OrbitCutState, 'exportState', this.exportStatus);
+    this.panel.requireElementById<UIKit.Text>('task-progress').setProperties({ text: progress });
+    this.panel.requireElementById<UIKit.Text>('task-title').setProperties({ text: title });
+    this.panel.requireElementById<UIKit.Text>('task-next-label').setProperties({ text: next });
+    this.panel.requireElementById<UIKit.Text>('work-pause-label').setProperties({ text: this.paused ? 'Continue' : 'Pause' });
+    this.panel.requireElementById('panel-surface').setProperties({ backgroundColor: color });
+    const pauseButton = document.querySelector<HTMLButtonElement>('#pause-work-desktop')!;
+    pauseButton.textContent = this.paused ? 'Continue editing' : 'Pause';
+    document.querySelector<HTMLInputElement>('#open-file')!.disabled = this.paused || this.busy;
+    document.querySelector<HTMLButtonElement>('#practice-waterfall')!.disabled = this.paused || this.busy;
+    document.querySelector<HTMLInputElement>('#cut-seconds')!.disabled = this.paused || this.busy;
+    this.message(hint);
+  }
+
+  private async nextTask(): Promise<void> {
+    if (this.paused) { this.togglePause(); return; }
+    if (this.exportStatus === 'exporting') { this.pauseWork('Export stopped.'); return; }
+    if (this.busy) return;
+    if (!this.media.ready) {
+      if (this.world.renderer.xr.getSession()) this.message('Leave immersion to open a local 2:1 MP4.');
+      else document.querySelector<HTMLInputElement>('#open-file')!.click();
+      return;
+    }
+    if (this.exportStatus === 'interrupted' || this.exportStatus === 'failed') await this.export();
+    else if (this.exportStatus === 'ready') await this.toggleReview();
+    else if (this.reviewing) await this.export();
+    else if (this.knownOffset && this.completedCuts < this.media.cuts.length) {
+      if (this.media.selectedCutIndex !== this.completedCuts) await this.editCut(() => this.media.selectCut(this.completedCuts));
+      else this.replay();
+    } else await this.toggleReview();
   }
 
   private async captureReference(): Promise<void> {
@@ -189,7 +334,7 @@ export class OrbitSystem extends createSystem({
   private syncCut(): void {
     const index = this.media.selectedCutIndex;
     const cuts = this.media.cuts;
-    this.knownOffset = cuts.every((cut, i) => Math.abs(cut.seconds - (this.sourceCuts[i] ?? -1)) < 0.01);
+    this.knownOffset = cuts.length === this.sourceCuts.length && cuts.every((cut, i) => Math.abs(cut.seconds - this.sourceCuts[i]) < 0.01);
     const offset = this.knownOffset ? this.sourceHeadings[index + 1] - this.sourceHeadings[index] - this.media.referenceYawDegrees : 0;
     this.state.setValue(OrbitCutState, 'sourceOffsetDegrees', offset);
     this.state.setValue(OrbitCutState, 'selectedCut', index);
@@ -209,21 +354,27 @@ export class OrbitSystem extends createSystem({
     input.min = String((cuts[index - 1]?.seconds ?? 0) + 0.1);
     input.max = String((cuts[index + 1]?.seconds ?? this.media.duration) - 0.1);
     this.applyYaw(this.media.yawDegrees);
+    this.refreshTask();
   }
 
   private async editCut(edit: () => void): Promise<void> {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.busy = true;
     this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
+    let errorMessage = '';
     try {
+      const previous = this.media.cuts;
       edit();
+      if (this.media.cuts !== previous) this.exportStatus = 'idle';
       await this.captureReference();
       this.syncCut();
-      this.message('Line up the next shot with the corrected previous shot.');
     } catch (error) {
       document.querySelector<HTMLInputElement>('#cut-seconds')!.value = this.media.cutSeconds.toFixed(1);
-      this.message(String(error));
-    } finally { this.busy = false; }
+      errorMessage = String(error);
+    } finally {
+      this.busy = false; this.refreshTask();
+      if (errorMessage) this.message(errorMessage);
+    }
   }
 
   private moveCut(delta: number): void {
@@ -237,19 +388,21 @@ export class OrbitSystem extends createSystem({
     this.optical.visible = !visible;
     this.ring.object3D!.visible = !visible;
     this.panel.position.y = 1.8 + this.benchOffsetY - (visible ? 0.5 : 0);
-    for (const id of ['cut-controls', 'boundary-controls', 'yaw-row', 'turn-row']) {
+    for (const id of ['cut-controls', 'yaw-row', 'turn-row']) {
       this.panel.requireElementById(id).setProperties({ display: visible ? 'none' : 'flex' });
     }
+    this.panel.requireElementById('boundary-controls').setProperties({ display: !visible && this.timingVisible ? 'flex' : 'none' });
     for (const id of ['review-controls', 'review-status']) {
       this.panel.requireElementById(id).setProperties({ display: visible ? 'flex' : 'none' });
     }
     this.panel.requireElementById<UIKit.Text>('review-label').setProperties({ text: visible ? 'Back to edit' : 'Review 360' });
     this.state.setValue(OrbitCutState, 'panoramaVisible', visible);
     this.compare(true);
+    this.refreshTask();
   }
 
   private async toggleReview(): Promise<void> {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.setReview(!this.reviewing);
     if (this.reviewing) await this.playReview(0);
     else await this.editCut(() => this.media.selectCut(this.media.selectedCutIndex));
@@ -266,13 +419,17 @@ export class OrbitSystem extends createSystem({
   }
 
   private async playReview(seconds: number): Promise<void> {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.busy = true;
+    let errorMessage = '';
     try {
       await this.media.playFrom(seconds);
-      this.message('Look around. Compare Original and Corrected without moving your head.');
-    } catch (error) { this.message(String(error)); }
-    finally { this.busy = false; }
+      if (this.paused) this.media.video.pause();
+    } catch (error) { errorMessage = String(error); }
+    finally {
+      this.busy = false; this.refreshTask();
+      if (errorMessage && !this.paused) this.message(errorMessage);
+    }
   }
 
   private async pauseReview(): Promise<void> {
@@ -281,21 +438,26 @@ export class OrbitSystem extends createSystem({
   }
 
   private async loadPractice(): Promise<void> {
-    if (this.busy) return;
+    if (this.busy || this.paused) return;
     this.busy = true;
     this.message('Loading the waterfall practice film...');
     try {
       const response = await fetch(`${import.meta.env.BASE_URL}media/waterfall-practice.mp4`);
       if (!response.ok) throw new Error('Practice film failed to load. Try again.');
       await this.load(new File([await response.blob()], 'Waterfall practice.mp4', { type: 'video/mp4' }), true);
-    } catch (error) { this.message(String(error)); }
-    finally { this.busy = false; }
+    } catch (error) {
+      this.busy = false; this.refreshTask(); this.message(String(error));
+    }
   }
 
   private async load(file?: File, practice = false): Promise<void> {
     this.busy = true;
+    this.exportStatus = 'idle';
+    this.timingVisible = false;
+    this.panel.requireElementById<UIKit.Text>('cut-timing-label').setProperties({ text: 'Timing' });
     this.setReview(false);
     this.state.setValue(OrbitCutState, 'mediaReady', false);
+    let errorMessage = '';
     try {
       if (file) await this.media.openFile(file);
       else {
@@ -317,9 +479,12 @@ export class OrbitSystem extends createSystem({
       this.state.setValue(OrbitCutState, 'mediaReady', true);
       this.syncCut();
       document.querySelector<HTMLElement>('#sample-credit')!.hidden = !practice;
-      this.message(practice ? 'Waterfall practice: turn until the path lines up.' : file ? `${file.name}: set a cut, turn the wheel, then add another.` : 'Pinch and turn the wheel. Align Cut 1, then Cut 2. Review in 360.');
-    } catch (error) { this.message(String(error)); }
-    finally { this.busy = false; }
+    } catch (error) { errorMessage = String(error); }
+    finally {
+      this.busy = false; this.refreshTask();
+      if (errorMessage) this.message(errorMessage);
+      else if (file && !practice) this.message(`${file.name}: set a cut, turn the wheel, then review in 360.`);
+    }
   }
 
   private heading(hand: 'left' | 'right'): number {
@@ -328,8 +493,13 @@ export class OrbitSystem extends createSystem({
   }
 
   private applyYaw(degrees: number): void {
+    const oldYaw = this.media.yawDegrees;
     this.media.setYaw(degrees);
     const yaw = this.media.yawDegrees;
+    const changed = Math.abs(yaw - oldYaw) > 0.0001;
+    const oldAligned = this.state.getValue(OrbitCutState, 'aligned');
+    const oldExportStatus = this.exportStatus;
+    if (changed) this.exportStatus = 'idle';
     const residual = ((yaw + (this.state.getValue(OrbitCutState, 'sourceOffsetDegrees') ?? 0) + 540) % 360) - 180;
     const aligned = this.knownOffset && Math.abs(residual) < 3;
     this.state.setValue(OrbitCutState, 'yawDegrees', yaw);
@@ -340,11 +510,11 @@ export class OrbitSystem extends createSystem({
       text: `${Math.round(yaw)} deg${this.knownOffset ? ` | ${aligned ? 'Beacon aligned' : `${Math.round(Math.abs(residual))} deg to align`}` : ' | Check the cut'}`,
       color: aligned ? '#9fdec9' : '#f5a15e',
     });
-    this.panel.requireElementById('panel-surface').setProperties({ backgroundColor: aligned ? '#17473f' : '#171b35' });
+    if (aligned !== oldAligned || this.exportStatus !== oldExportStatus || this.completedCuts !== this.alignmentCount()) this.refreshTask();
   }
 
   private turn(degrees: number): void {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
     this.state.setValue(OrbitCutState, 'inputKind', 'button');
     this.applyYaw(this.media.yawDegrees + degrees);
@@ -352,13 +522,13 @@ export class OrbitSystem extends createSystem({
   }
 
   private replay(): void {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.state.setValue(OrbitCutState, 'cutCount', (this.state.getValue(OrbitCutState, 'cutCount') ?? 0) + 1);
     void this.media.playCut().catch(error => this.message(String(error)));
   }
 
   private reset(): void {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
     this.applyYaw(0);
     this.state.setValue(OrbitCutState, 'inputKind', 'none');
@@ -366,20 +536,30 @@ export class OrbitSystem extends createSystem({
   }
 
   private async export(): Promise<void> {
-    if (this.busy || !this.media.ready) return;
+    if (this.busy || this.paused || !this.media.ready) return;
     this.busy = true;
+    this.exportStatus = 'exporting';
     this.world.getSystem(GrabSystem)?.forceRelease(this.ring);
-    this.message('Exporting all corrected shots in real time. Keep this tab open.');
+    this.refreshTask();
+    let errorMessage = '';
     try {
       const blob = await this.media.exportMp4();
+      if (this.paused) { this.exportStatus = 'interrupted'; return; }
       if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl);
       this.downloadUrl = URL.createObjectURL(blob);
       const link = document.querySelector<HTMLAnchorElement>('#download')!;
       link.href = this.downloadUrl; link.hidden = false;
       link.click();
-      this.message(`360° MP4 ready (${this.media.lastExportMimeType.replace('video/mp4;codecs=', '')}). Leave immersion to save again.`);
-    } catch (error) { this.message(String(error)); }
-    finally { this.busy = false; }
+      this.exportStatus = 'ready';
+    } catch (error) {
+      this.exportStatus = this.paused ? 'interrupted' : 'failed';
+      errorMessage = String(error);
+    } finally {
+      this.busy = false;
+      this.refreshTask();
+      if (errorMessage && !this.paused) this.message(errorMessage);
+      if (this.exportStatus === 'ready') this.message(`360 MP4 ready (${this.media.lastExportMimeType.replace('video/mp4;codecs=', '')}). Leave immersion to save again.`);
+    }
   }
 
   update(): void {
@@ -390,7 +570,7 @@ export class OrbitSystem extends createSystem({
       this.anchor.y += offset - this.benchOffsetY;
       this.benchOffsetY = offset;
     }
-    if (!this.busy && this.holder && this.queries.held.entities.has(this.ring)) {
+    if (!this.busy && !this.paused && this.holder && this.queries.held.entities.has(this.ring)) {
       const delta = ((this.heading(this.holder) - this.grabHeading + 540) % 360) - 180;
       const yaw = this.grabYaw + delta;
       if (Math.abs(yaw - this.media.yawDegrees) > 0.15) this.applyYaw(yaw);

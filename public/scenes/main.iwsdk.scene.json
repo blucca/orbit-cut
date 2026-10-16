@@ -3,57 +3,156 @@
   "units": "meters",
   "components": {
     "com.iwsdk.components.IBLGradient": {
-      "sky": [0.3, 0.35, 0.5, 1], "equator": [0.2, 0.22, 0.3, 1],
-      "ground": [0.1, 0.12, 0.2, 1], "intensity": 1
+      "sky": [
+        0.3,
+        0.35,
+        0.5,
+        1
+      ],
+      "equator": [
+        0.2,
+        0.22,
+        0.3,
+        1
+      ],
+      "ground": [
+        0.1,
+        0.12,
+        0.2,
+        1
+      ],
+      "intensity": 1
     },
     "com.iwsdk.components.DomeGradient": {
-      "sky": [0.020, 0.025, 0.072, 1],
-      "equator": [0.052, 0.064, 0.139, 1],
-      "ground": [0.015, 0.018, 0.046, 1],
+      "sky": [
+        0.02,
+        0.025,
+        0.072,
+        1
+      ],
+      "equator": [
+        0.052,
+        0.064,
+        0.139,
+        1
+      ],
+      "ground": [
+        0.015,
+        0.018,
+        0.046,
+        1
+      ],
       "intensity": 1
     }
   },
   "resources": {},
   "authoring": {
-    "views": [{
-      "id": "hero", "role": "hero", "projection": "perspective",
-      "position": [0, 1.6, 0.1], "target": [0, 1.39, -0.72], "fov": 60
-    }]
+    "views": [
+      {
+        "id": "hero",
+        "role": "hero",
+        "projection": "perspective",
+        "position": [
+          0,
+          1.6,
+          0.1
+        ],
+        "target": [
+          0,
+          1.44,
+          -0.72
+        ],
+        "fov": 68
+      }
+    ]
   },
   "nodes": [
     {
-      "id": "orbit-cut-state", "name": "orbit-cut-state",
-      "components": {"OrbitCutState": {
-        "yawDegrees": 0, "activeShot": "after", "isDragging": false,
-        "inputKind": "none", "sourceOffsetDegrees": 55, "residualDegrees": 55,
-        "aligned": false, "grabCount": 0, "cutCount": 0,
-        "mediaReady": false, "previewYawDegrees": 0
-      }}
-    },
-    {
-      "id": "optical-frame", "name": "optical-frame",
-      "content": {"type": "asset", "asset": "optical-frame"},
-      "transform": {"position": [0, 1.48, -0.75]},
-      "components": {"WorkbenchPart": {}}
-    },
-    {
-      "id": "orbit-yaw-ring", "name": "orbit-yaw-ring",
-      "content": {"type": "asset", "asset": "yaw-wheel"},
-      "transform": {"position": [0, 1.27, -0.60]},
+      "id": "orbit-cut-state",
+      "name": "orbit-cut-state",
       "components": {
-        "WorkbenchPart": {}, "YawRing": {}, "RayInteractable": {},
-        "DistanceGrabbable": {
-          "movementMode": "RotateAtSource", "translate": false,
-          "rotate": false, "scale": false, "detachOnGrab": false
-        },
-        "OneHandGrabbable": {"translate": false, "rotate": false}
+        "OrbitCutState": {
+          "yawDegrees": 0,
+          "activeShot": "after",
+          "isDragging": false,
+          "inputKind": "none",
+          "sourceOffsetDegrees": 55,
+          "residualDegrees": 55,
+          "aligned": false,
+          "grabCount": 0,
+          "cutCount": 0,
+          "mediaReady": false,
+          "previewYawDegrees": 0
+        }
       }
     },
     {
-      "id": "workbench-panel", "name": "workbench-panel",
-      "content": {"type": "asset", "asset": "workbench-panel"},
-      "transform": {"position": [0, 1.77, -0.76]},
-      "components": {"WorkbenchPart": {}, "RayInteractable": {}}
+      "id": "optical-frame",
+      "name": "optical-frame",
+      "content": {
+        "type": "asset",
+        "asset": "optical-frame"
+      },
+      "transform": {
+        "position": [
+          0,
+          1.48,
+          -0.75
+        ]
+      },
+      "components": {
+        "WorkbenchPart": {}
+      }
+    },
+    {
+      "id": "orbit-yaw-ring",
+      "name": "orbit-yaw-ring",
+      "content": {
+        "type": "asset",
+        "asset": "yaw-wheel"
+      },
+      "transform": {
+        "position": [
+          0,
+          1.27,
+          -0.6
+        ]
+      },
+      "components": {
+        "WorkbenchPart": {},
+        "YawRing": {},
+        "RayInteractable": {},
+        "DistanceGrabbable": {
+          "movementMode": "RotateAtSource",
+          "translate": false,
+          "rotate": false,
+          "scale": false,
+          "detachOnGrab": false
+        },
+        "OneHandGrabbable": {
+          "translate": false,
+          "rotate": false
+        }
+      }
+    },
+    {
+      "id": "workbench-panel",
+      "name": "workbench-panel",
+      "content": {
+        "type": "asset",
+        "asset": "workbench-panel"
+      },
+      "transform": {
+        "position": [
+          0,
+          1.77,
+          -0.76
+        ]
+      },
+      "components": {
+        "WorkbenchPart": {},
+        "RayInteractable": {}
+      }
     }
   ]
 }

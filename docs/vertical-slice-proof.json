@@ -1,0 +1,45 @@
+{
+  "started_at": "2026-10-16T21:19:59Z",
+  "runtime_gate_passed": true,
+  "scene": "Orbit Cut optical workbench",
+  "rendering": "headless SwiftShader; browser XR emulator",
+  "media_ready": true,
+  "state_entity": 12,
+  "interactions": [
+    {
+      "input": "controller",
+      "initial_yaw": 0,
+      "final_yaw": -24.999996185302734,
+      "held": true,
+      "released": true,
+      "preview_yaw": -24.999996185302734
+    },
+    {
+      "input": "hand",
+      "initial_yaw": -24.999996185302734,
+      "final_yaw": -54.99999237060547,
+      "held": true,
+      "released": true,
+      "preview_yaw": -54.99999237060547
+    }
+  ],
+  "aligned_yaw": -54.99999237060547,
+  "aligned": true,
+  "replay_count": 1,
+  "export_status": "MP4 ready (vp9,opus). Leave immersion to save again.",
+  "reset_yaw": 0,
+  "scope": "Emulated hand/controller input and live XR export; no physical Quest performance claim",
+  "finished_at": "2026-10-16T21:21:11Z",
+  "source_commit": "c9da1a2b42e5e9997e5571b4cd02363be61781b9",
+  "run_url": "https://github.com/blucca/orbit-cut/actions/runs/38968521511",
+  "production_build": "passed",
+  "pages_deployment": "passed",
+  "public_entry": "https://blucca.github.io/orbit-cut/",
+  "visual_review": "Aligned reference and video show the same beacon; orange wheel and green aligned state visible in an active emulated XR session.",
+  "next_quality_gates": [
+    "Frame-exact export and audio endpoints",
+    "Spherical metadata",
+    "Immersive panorama review and multiple cuts",
+    "Independent editor and physical Quest performance"
+  ]
+}

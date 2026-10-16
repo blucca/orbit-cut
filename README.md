@@ -6,6 +6,10 @@ Two matching lenses show the last frame before a cut and the video after it. Pin
 
 **An early, single-cut workbench.** Open a local monoscopic 2:1 MP4, set the cut time, and work seated. The built-in twelve-second practice film is synthetic and intentionally has a 55° heading jump. Try **Waterfall practice** for an attributed real-camera clip with an intentionally added cut. Video files are processed in the browser. [Media sources and modifications](public/media/SOURCES.md).
 
+[Open the workbench](https://blucca.github.io/orbit-cut/) · [Interaction receipt](docs/vertical-slice-proof.json) · [Real-camera export measurements](docs/real-media-proof.json)
+
+![The two frames aligned by an emulated hand pinch and turn](docs/workbench.png)
+
 ## Editing
 
 - Point and pinch the wheel, then turn your hand. Controllers also work; the turn buttons offer 5° steps.

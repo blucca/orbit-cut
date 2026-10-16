@@ -1,0 +1,72 @@
+{
+  "sourceFile": "ess-na-crub-teaching-cut.mp4",
+  "sourceKind": "Bernard Ladenthin real-camera waterfall recording; artificial +293-pixel (+54.9375-degree) yaw jump added at 5 seconds for this teaching version.",
+  "requestedCorrectionDegrees": -55,
+  "actualCorrectionPixels": -293,
+  "sourceDuration": 10.011833,
+  "outputDuration": 10.003267,
+  "dimensions": [
+    1920,
+    960
+  ],
+  "outputMime": "video/mp4;codecs=vp9,opus",
+  "outputBytes": 13040733,
+  "exportWallSeconds": 10.375,
+  "sampleTimes": [
+    1,
+    3,
+    6,
+    8
+  ],
+  "pixelMaeFromExpected": [
+    0.7702864583333333,
+    0.7064908854166667,
+    0.6834440104166667,
+    0.7337630208333333
+  ],
+  "inputMisalignmentMae": [
+    0,
+    0,
+    39.71902994791667,
+    39.78774088541667
+  ],
+  "outputAfterMotionMae": 1.6891796875,
+  "sourceWaterMotionMae": 2.83203125,
+  "outputWaterMotionMae": 3.0807291666666665,
+  "sourceAudio": {
+    "duration": 10.011814058956917,
+    "channels": 2,
+    "rms": 0.048604056117481864
+  },
+  "outputAudio": {
+    "duration": 9.879977324263038,
+    "channels": 2,
+    "rms": 0.04863945656283693
+  },
+  "ffprobe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "vp9",
+        "codec_type": "video",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "900000/29999",
+        "start_time": "0.000000",
+        "duration": "10.003267"
+      },
+      {
+        "codec_name": "opus",
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0",
+        "start_time": "0.000000",
+        "duration": "9.920063"
+      }
+    ],
+    "format": {
+      "duration": "10.003267",
+      "size": "13040733"
+    }
+  }
+}

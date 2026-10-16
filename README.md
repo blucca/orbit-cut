@@ -6,11 +6,11 @@ Two matching lenses show the corrected previous shot and the video after a cut. 
 
 **A seated, two-cut workbench.** Open a local monoscopic 2:1 MP4, choose up to two cut times, and keep each shot's correction. The built-in twelve-second synthetic exercise has cuts at 4 and 8 seconds, with source headings of 0°, +55°, and -35°. Try **Waterfall practice** for an attributed real-camera clip with an intentionally added cut. Video files are processed in the browser. [Media sources and modifications](public/media/SOURCES.md).
 
-[Open the workbench](https://blucca.github.io/orbit-cut/) · [Interaction receipt](docs/vertical-slice-proof.json) · [Real-camera export measurements](docs/real-media-proof.json)
+[Open the workbench](https://blucca.github.io/orbit-cut/) · [Two-cut interaction and media receipt](docs/two-cut-proof.json) · [Real-camera export measurements](docs/real-media-proof.json)
 
 Have a Quest and eight minutes? [Try the editing task and tell us where it gets awkward.](docs/quest-playtest.md)
 
-![The two frames aligned by an emulated hand pinch and turn](docs/workbench.png)
+![Two independently aligned cuts, with the previous correction retained](docs/two-cut-workbench.png)
 
 ## Editing
 
@@ -21,6 +21,8 @@ Have a Quest and eight minutes? [Try the editing task and tell us where it gets 
 - **Review 360** surrounds you with the film. **Original** and **Corrected** share the same viewing direction; pause to compare a fixed frame, or replay the whole film. **Back to edit** returns to the selected cut.
 - **Reset** removes only the selected shot's rotation. **Export MP4** renders all corrected shots in real time, with the soundtrack.
 - The save link stays available in the browser after leaving immersion.
+
+![Corrected panorama reviewed from the same viewing direction](docs/two-cut-panorama.png)
 
 Review export uses the browser's native recorder, up to 30 fps. It prefers H.264/AAC when available; Chromium's tested fallback is an MP4 containing VP9/Opus. The exact format is shown after export. Frame-exact delivery, spherical metadata, and physical Quest performance are the next quality milestones.
 

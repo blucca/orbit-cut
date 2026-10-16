@@ -19,7 +19,8 @@
       input[type=number] { width: 62px; background: #292e50; color: #f4ebd9; border: 1px solid #8f93ad; border-radius: 5px; padding: 7px; }
       :focus-visible, .file-button:focus-within { outline: 3px solid #f4ebd9; outline-offset: 3px; }
       #media-message { width: 100%; margin: 0; color: #b7bad1; font-size: 13px; }
-      #download { color: #f5a15e; }
+      #download, #sample-credit a { color: #f5a15e; }
+      #sample-credit { width: 100%; margin: 0; color: #b7bad1; font-size: 12px; }
       @media (max-width: 520px) { #file-bar { font-size: 13px; bottom: 8px; padding: 10px; } }
     </style>
   </head>
@@ -27,10 +28,12 @@
     <div id="scene-container"></div>
     <aside id="file-bar" aria-label="Video file and immersive session">
       <label class="file-button">Open 360 video<input id="open-file" type="file" accept="video/mp4" aria-label="Open local monoscopic 2:1 video" /></label>
+      <button id="practice-waterfall">Waterfall practice</button>
       <label>Cut at <input id="cut-seconds" type="number" min="0.1" max="59.9" step="0.1" value="6" /> s</label>
       <button id="enter-xr">Enter immersive workbench</button>
-      <a id="download" hidden download="orbit-cut.mp4">Save MP4</a>
+      <a id="download" hidden download="orbit-cut.mp4">Save last export</a>
       <p id="media-message" role="status">Loading the 12-second synthetic practice film. Your files stay in this browser.</p>
+      <p id="sample-credit" hidden>Camera film by <a href="https://commons.wikimedia.org/wiki/File:20180407_132600_Ess-Na-Crub_Waterfall.webm" target="_blank" rel="noreferrer">Bernard Ladenthin</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>. Orbit Cut added the direction jump at 5 seconds. Retain attribution when sharing an export.</p>
     </aside>
     <script type="module" src="/src/index.ts"></script>
   </body>

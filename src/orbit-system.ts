@@ -1,12 +1,13 @@
 import {
   CanvasTexture, createSystem, Entity, Grabbed, GrabSystem, Mesh,
-  ShaderMaterial, SRGBColorSpace, Texture, UIKit, UIKitMLAsset,
+  ShaderMaterial, Texture, UIKit, UIKitMLAsset,
   Vector3, VideoTexture, VisibilityState,
 } from '@iwsdk/core';
 import { OrbitCutState, WorkbenchPart, YawRing } from './orbit-components.js';
 import { MediaSession } from './media.js';
 
 // Both windows use the same 70-degree lens and fixed world-facing sight.
+// Their source pixels are already display-encoded; bypass lighting and tone mapping equally.
 function projection(texture: Texture): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: { frame: { value: texture }, yaw: { value: 0 } },
@@ -18,7 +19,6 @@ function projection(texture: Texture): ShaderMaterial {
         vec2 sphereUv = vec2(fract(0.5 + atan(ray.x, -ray.z) / 6.2831853 - yaw / 360.0),
           0.5 + asin(ray.y) / 3.14159265);
         gl_FragColor = texture2D(frame, sphereUv);
-        #include <colorspace_fragment>
       }`,
     toneMapped: false,
   });
@@ -58,9 +58,7 @@ export class OrbitSystem extends createSystem({
     if (grabbing) grabbing.config.useHandPinchForGrab.value = true;
     const frame = this.world.requireSceneObject('optical-frame');
     this.videoTexture = new VideoTexture(this.media.video);
-    this.videoTexture.colorSpace = SRGBColorSpace;
     this.referenceTexture = new CanvasTexture(document.createElement('canvas'));
-    this.referenceTexture.colorSpace = SRGBColorSpace;
     this.reference = projection(this.referenceTexture);
     this.preview = projection(this.videoTexture);
     (frame.getObjectByName('reference-view') as Mesh).material = this.reference;
@@ -100,6 +98,7 @@ export class OrbitSystem extends createSystem({
     const fileInput = document.querySelector<HTMLInputElement>('#open-file')!;
     const cutInput = document.querySelector<HTMLInputElement>('#cut-seconds')!;
     const xrButton = document.querySelector<HTMLButtonElement>('#enter-xr')!;
+    const practiceButton = document.querySelector<HTMLButtonElement>('#practice-waterfall')!;
     const open = () => {
       const file = fileInput.files?.[0];
       if (file && !this.busy) void this.load(file);
@@ -115,13 +114,16 @@ export class OrbitSystem extends createSystem({
       void this.captureReference().then(() => this.reset()).catch(error => this.message(String(error)));
     };
     const enter = () => { void this.world.launchXR(); };
+    const practice = () => { void this.loadPractice(); };
     fileInput.addEventListener('change', open);
     cutInput.addEventListener('change', cut);
     xrButton.addEventListener('click', enter);
+    practiceButton.addEventListener('click', practice);
     this.cleanupFuncs.push(
       () => fileInput.removeEventListener('change', open),
       () => cutInput.removeEventListener('change', cut),
       () => xrButton.removeEventListener('click', enter),
+      () => practiceButton.removeEventListener('click', practice),
       this.world.visibilityState.subscribe(state => {
         const immersive = state !== VisibilityState.NonImmersive;
         document.querySelector<HTMLElement>('#file-bar')!.style.display = immersive ? 'none' : 'flex';
@@ -147,29 +149,41 @@ export class OrbitSystem extends createSystem({
     // Texture dimensions are immutable after GPU allocation; replace on a new frame size.
     this.referenceTexture.dispose();
     this.referenceTexture = new CanvasTexture(canvas);
-    this.referenceTexture.colorSpace = SRGBColorSpace;
     this.reference.uniforms.frame.value = this.referenceTexture;
     await this.media.seek(Math.min(this.media.cutSeconds + 0.05, this.media.duration - 0.01));
   }
 
-  private async load(file?: File): Promise<void> {
+  private async loadPractice(): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    this.message('Loading the waterfall practice film...');
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}media/waterfall-practice.mp4`);
+      if (!response.ok) throw new Error('Practice film failed to load. Try again.');
+      await this.load(new File([await response.blob()], 'Waterfall practice.mp4', { type: 'video/mp4' }), true);
+    } catch (error) { this.message(String(error)); }
+    finally { this.busy = false; }
+  }
+
+  private async load(file?: File, practice = false): Promise<void> {
     this.busy = true;
     this.state.setValue(OrbitCutState, 'mediaReady', false);
     try {
       if (file) await this.media.openFile(file); else await this.media.openDemo();
       this.videoTexture.dispose();
       this.videoTexture = new VideoTexture(this.media.video);
-      this.videoTexture.colorSpace = SRGBColorSpace;
       this.preview.uniforms.frame.value = this.videoTexture;
-      this.knownOffset = !file;
-      this.state.setValue(OrbitCutState, 'sourceOffsetDegrees', file ? 0 : 55);
+      this.knownOffset = !file || practice;
+      if (practice) this.media.cutSeconds = 5;
+      this.state.setValue(OrbitCutState, 'sourceOffsetDegrees', this.knownOffset ? 55 : 0);
       await this.captureReference();
       const cutInput = document.querySelector<HTMLInputElement>('#cut-seconds')!;
       cutInput.value = String(this.media.cutSeconds);
       cutInput.max = String(this.media.duration - 0.05);
       this.state.setValue(OrbitCutState, 'mediaReady', true);
       this.applyYaw(0);
-      this.message(file ? `${file.name}: turn the wheel, then replay the cut.` : 'Synthetic practice film: pinch the orange wheel and line up the beacon.');
+      document.querySelector<HTMLElement>('#sample-credit')!.hidden = !practice;
+      this.message(practice ? 'Waterfall practice: turn until the path lines up.' : file ? `${file.name}: turn the wheel, then replay the cut.` : 'Synthetic practice film: pinch the orange wheel and line up the beacon.');
     } catch (error) { this.message(String(error)); }
     finally { this.busy = false; }
   }

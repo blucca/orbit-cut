@@ -8,5 +8,21 @@
   "browser": "154.0.8037.97",
   "errors": [],
   "surface": "Deployed production page, non-immersive browser; real local file selection and 2K texture replacement",
-  "at": "2026-10-16T21:25:05.825Z"
+  "at": "2026-10-16T21:32:15.894Z",
+  "source_commit": "bc7264cd92d40abb7657443baeabb5e572b919a1",
+  "desktop_framing": {
+    "url": "https://blucca.github.io/orbit-cut/",
+    "status": 200,
+    "practice": "Waterfall practice: turn until the path lines up.",
+    "credit": "Camera film by Bernard Ladenthin, CC BY 4.0. Orbit Cut added the direction jump at 5 seconds. Retain attribution when sharing an export.",
+    "errors": [],
+    "sourceCommit": "8fa1f7dd61f60629643db5efef31c0926b395c96",
+    "scope": "Changed desktop framing only; native file import and media behavior use the prior accepted receipts.",
+    "viewport": {
+      "width": 1000,
+      "height": 760
+    },
+    "at": "2026-10-16T21:39:14.225Z",
+    "visual_review": "Title, two lenses, orange wheel and file controls fit the 1000 x 760 viewport."
+  }
 }

@@ -1,0 +1,27 @@
+{
+  "started_at": "2026-10-16T18:07:42Z",
+  "runtime_gate_passed": true,
+  "scene": "unchanged IWSDK starter",
+  "rendering": "headless SwiftShader; browser XR emulator",
+  "entity_index": 13,
+  "initial_position": [
+    1.2000000476837158,
+    0.8500000238418579,
+    -1.7999999523162842
+  ],
+  "final_position": [
+    0.7000000476837158,
+    1.100000023841858,
+    -1.7999999523162842
+  ],
+  "moved_metres": 0.5590169943749475,
+  "finished_at": "2026-10-16T18:08:21Z",
+  "source_commit": "62e7d03e1833ad1e6611464ffaa1d13eb17cc03b",
+  "run_url": "https://github.com/blucca/orbit-cut/actions/runs/38944870438",
+  "held_grabbed_component": true,
+  "released_grabbed_component": false,
+  "session_mode": "immersive-vr",
+  "production_build": "passed",
+  "visual_inspection": "Rendered starter room, plant and controllers visible in the active XR runtime image",
+  "scope": "Official starter scene; emulated controller interaction. Orbit Cut editing, hands-first workflow, and physical Quest performance are subsequent milestones."
+}

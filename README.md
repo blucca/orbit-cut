@@ -2,7 +2,15 @@
 
 A 360° video cut-direction editor: align the subject across a cut while watching in an immersive headset, then export the corrected video.
 
-**Prototype stage.** The low-resolution offline rotation proof passes. The XR bootstrap currently preserves the official IWSDK starter scene. The next gate is a rendered application, an active emulated XR session, and a measured grab → move → release through controller input.
+**Prototype stage.** The low-resolution offline rotation proof passes. The XR bootstrap currently preserves the official IWSDK starter scene. The hosted runtime gate passes: a rendered application, active emulated XR, and controller grab → move → release measured at 0.559 m. The editing workflow is the next milestone.
+
+## Runtime foundation
+
+[Passing run](https://github.com/blucca/orbit-cut/actions/runs/38944870438) · [Measured receipt](docs/runtime-proof.json)
+
+![Official starter scene, after an emulated distance grab](docs/runtime-proof.png)
+
+The first hosted attempt reached the command bridge before the application offered XR. Waiting for the application’s session offer fixed that readiness race; the unchanged scene and production build then passed.
 
 ## Run the runtime gate
 

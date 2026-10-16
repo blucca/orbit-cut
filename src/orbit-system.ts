@@ -377,7 +377,7 @@ export class OrbitSystem extends createSystem({
       const link = document.querySelector<HTMLAnchorElement>('#download')!;
       link.href = this.downloadUrl; link.hidden = false;
       link.click();
-      this.message(`MP4 ready (${this.media.lastExportMimeType.replace('video/mp4;codecs=', '')}). Leave immersion to save again.`);
+      this.message(`360° MP4 ready (${this.media.lastExportMimeType.replace('video/mp4;codecs=', '')}). Leave immersion to save again.`);
     } catch (error) { this.message(String(error)); }
     finally { this.busy = false; }
   }

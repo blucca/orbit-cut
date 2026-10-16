@@ -222,7 +222,7 @@ export class MediaSession {
       video.playbackRate = 1;
       const [, blob] = await Promise.all([video.play(), result]);
       this.exportMimeType = blob.type;
-      return blob;
+      return await tagSphericalMp4(blob);
     } finally {
       this.cancelExport = undefined;
       if (timeout) clearTimeout(timeout);
@@ -318,4 +318,99 @@ async function seekVideo(video: HTMLVideoElement, seconds: number): Promise<void
   const seeked = mediaEvent(video, 'seeked');
   video.currentTime = seconds;
   await seeked;
+}
+
+type Mp4Box = { start: number; end: number; body: number; type: string };
+
+function mp4Boxes(view: DataView, start: number, end: number): Mp4Box[] {
+  const boxes: Mp4Box[] = [];
+  while (start < end) {
+    if (start + 8 > end) throw new Error('The recorder returned a truncated MP4 box.');
+    const size32 = view.getUint32(start);
+    const header = size32 === 1 ? 16 : 8;
+    if (start + header > end) throw new Error('The recorder returned a truncated MP4 header.');
+    const size = size32 === 1 ? Number(view.getBigUint64(start + 8)) : size32 || end - start;
+    if (!Number.isSafeInteger(size) || size < header || start + size > end) throw new Error('The recorder returned an invalid MP4 box size.');
+    const type = String.fromCharCode(...new Uint8Array(view.buffer, view.byteOffset + start + 4, 4));
+    boxes.push({ start, end: start + size, body: start + header, type });
+    start += size;
+  }
+  return boxes;
+}
+
+/** Tag the newly recorded, full-frame mono panorama without re-encoding it.
+ * Spatial Media v1: https://github.com/google/spatial-media/blob/master/docs/spherical-video-rfc.md
+ */
+export async function tagSphericalMp4(blob: Blob): Promise<Blob> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const view = new DataView(bytes.buffer);
+  const children = (box: Mp4Box) => mp4Boxes(view, box.body, box.end);
+  const top = mp4Boxes(view, 0, bytes.length);
+  const movies = top.filter(box => box.type === 'moov');
+  if (movies.length !== 1) throw new Error('The recorder returned an MP4 without one movie header.');
+  const movie = movies[0];
+  const videos = children(movie).filter(track => track.type === 'trak' && children(track).some(media =>
+    media.type === 'mdia' && children(media).some(handler => handler.type === 'hdlr' &&
+      handler.body + 12 <= handler.end && view.getUint32(handler.body + 8) === 0x76696465)));
+  if (videos.length !== 1) throw new Error('360 export needs exactly one recorded video track.');
+  const video = videos[0];
+  const xml = new TextEncoder().encode('<rdf:SphericalVideo xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:GSpherical="http://ns.google.com/videos/1.0/spherical/">' +
+    '<GSpherical:Spherical>true</GSpherical:Spherical><GSpherical:Stitched>true</GSpherical:Stitched>' +
+    '<GSpherical:StitchingSoftware>Orbit Cut</GSpherical:StitchingSoftware>' +
+    '<GSpherical:ProjectionType>equirectangular</GSpherical:ProjectionType>' +
+    '<GSpherical:StereoMode>mono</GSpherical:StereoMode></rdf:SphericalVideo>');
+  const metadata = new Uint8Array(24 + xml.length);
+  new DataView(metadata.buffer).setUint32(0, metadata.length);
+  metadata.set([0x75, 0x75, 0x69, 0x64, 0xff, 0xcc, 0x82, 0x63, 0xf8, 0x55, 0x4a, 0x93,
+    0x88, 0x14, 0x58, 0x7a, 0x02, 0x52, 0x1f, 0xdd], 4);
+  metadata.set(xml, 24);
+  const insertion = video.end;
+  const delta = metadata.length;
+  const shiftOffset = (position: number, width: number, end: number) => {
+    if (position + width > end) throw new Error('The recorder returned a truncated MP4 index.');
+    let offset = width === 8 ? view.getBigUint64(position) : BigInt(view.getUint32(position));
+    if (offset < BigInt(insertion)) return;
+    offset += BigInt(delta);
+    if (width === 8) view.setBigUint64(position, offset);
+    else {
+      if (offset > 0xffffffffn) throw new Error('This MP4 is too large for its 32-bit index. Try a shorter clip.');
+      view.setUint32(position, Number(offset));
+    }
+  };
+  const containers = new Set(['moov', 'trak', 'mdia', 'minf', 'stbl', 'moof', 'traf', 'mfra']);
+  const patch = (box: Mp4Box): void => {
+    if (containers.has(box.type)) { children(box).forEach(patch); return; }
+    if (box.type === 'stco' || box.type === 'co64') {
+      const width = box.type === 'co64' ? 8 : 4;
+      if (box.body + 8 > box.end) throw new Error('The recorder returned a truncated MP4 chunk index.');
+      const count = view.getUint32(box.body + 4);
+      if (box.body + 8 + count * width > box.end) throw new Error('The recorder returned an invalid MP4 chunk count.');
+      for (let i = 0; i < count; i++) shiftOffset(box.body + 8 + i * width, width, box.end);
+    } else if (box.type === 'tfhd') {
+      // ponytail: native Chromium fragments use moof-relative data; add other muxers when needed.
+      if (box.body + 8 > box.end || (view.getUint32(box.body) & 0x020001) !== 0x020000) {
+        throw new Error('360 tagging needs moof-relative MP4 fragments. Try a recent Chrome browser.');
+      }
+    } else if (box.type === 'tfra') {
+      if (box.body + 16 > box.end || view.getUint8(box.body) > 1) throw new Error('The recorder returned an unsupported MP4 seek index.');
+      const width = view.getUint8(box.body) === 1 ? 8 : 4;
+      const sizes = view.getUint32(box.body + 8);
+      const entrySize = width * 2 + ((sizes >> 4) & 3) + ((sizes >> 2) & 3) + (sizes & 3) + 3;
+      const count = view.getUint32(box.body + 12);
+      if (box.body + 16 + count * entrySize > box.end) throw new Error('The recorder returned an invalid MP4 seek count.');
+      for (let i = 0; i < count; i++) shiftOffset(box.body + 16 + i * entrySize + width, width, box.end);
+    } else if (box.type === 'sidx') {
+      throw new Error('360 tagging does not yet support this recorder’s segment index. Try a recent Chrome browser.');
+    }
+  };
+  top.forEach(patch);
+  for (const box of [movie, video]) {
+    const size = box.end - box.start + delta;
+    if (view.getUint32(box.start) === 1) view.setBigUint64(box.start + 8, BigInt(size));
+    else {
+      if (size > 0xffffffff) throw new Error('The MP4 movie header is too large.');
+      view.setUint32(box.start, size);
+    }
+  }
+  return new Blob([bytes.subarray(0, insertion), metadata, bytes.subarray(insertion)], { type: blob.type });
 }

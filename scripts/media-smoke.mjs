@@ -4,6 +4,7 @@
  * ORBIT_MEDIA_OUTPUT=/path/to/workspace/temp/media node scripts/media-smoke.mjs
  * CHROMIUM_PATH=/usr/bin/chromium optionally uses a system browser.
  * node scripts/media-smoke.mjs --timeline-only checks edits without a browser.
+ * node scripts/media-smoke.mjs --metadata-only checks container tagging without a browser.
  */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -19,7 +20,7 @@ const source = await readFile(path.join(root, 'src/media.ts'), 'utf8');
 const module = ts.transpileModule(source.replaceAll('import.meta.env.BASE_URL', "'/'"), {
   compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext },
 }).outputText;
-const { MediaSession } = await import(`data:text/javascript;base64,${Buffer.from(module).toString('base64')}`);
+const { MediaSession, tagSphericalMp4 } = await import(`data:text/javascript;base64,${Buffer.from(module).toString('base64')}`);
 // Only the edit model needs a video with a duration; native decoding is checked below.
 globalThis.document = { createElement: () => ({ duration: 12 }) };
 const timeline = new MediaSession();
@@ -87,6 +88,36 @@ execFileSync('ffmpeg', [
 const motionFixture = await readFile(motionPath);
 const fixture = await readFile(path.join(root, 'public/media/orbit-demo.mp4'));
 const metadata = JSON.parse(await readFile(path.join(root, 'public/media/demo.json'), 'utf8'));
+const probe = (file, packets = false) => JSON.parse(execFileSync('ffprobe', [
+  '-v', 'error', '-show_streams', ...(packets ? ['-show_packets'] : []), '-of', 'json', file,
+], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
+const spherical = (report) => report.streams.find(stream => stream.codec_type === 'video')?.side_data_list?.find(data => data.side_data_type === 'Spherical Mapping');
+// Both positions of moov exercise chunk offsets; native fragmented output is reopened below.
+const metadataChecks = [];
+for (const file of [motionPath, path.join(root, 'public/media/orbit-demo.mp4')]) {
+  const tagged = path.join(out, `${path.basename(file, '.mp4')}-360.mp4`);
+  const input = await readFile(file);
+  const blob = await tagSphericalMp4(new Blob([input], { type: 'video/mp4' }));
+  await writeFile(tagged, new Uint8Array(await blob.arrayBuffer()));
+  const before = probe(file, true);
+  const after = probe(tagged, true);
+  assert.equal(spherical(after)?.projection, 'equirectangular', 'FFmpeg recognizes the 360 projection');
+  const packetTiming = report => report.packets.map(({ stream_index, pts, dts, duration, size }) => ({ stream_index, pts, dts, duration, size }));
+  assert.deepEqual(packetTiming(after), packetTiming(before), 'tagging retains every video/audio packet and timestamp');
+  const output = await readFile(tagged);
+  for (let i = 0; i < before.packets.length; i++) {
+    const a = before.packets[i], b = after.packets[i];
+    assert.deepEqual(output.subarray(Number(b.pos), Number(b.pos) + Number(b.size)), input.subarray(Number(a.pos), Number(a.pos) + Number(a.size)), 'encoded packet payload stays intact');
+  }
+  metadataChecks.push({ source: path.basename(file), addedBytes: blob.size - input.length, spherical: spherical(after), unchangedPackets: before.packets.length });
+}
+await assert.rejects(() => tagSphericalMp4(new Blob([new Uint8Array([0, 0, 0])])), /truncated/);
+await assert.rejects(() => tagSphericalMp4(new Blob([new Uint8Array([0, 0, 0, 1, 109, 111, 111, 118])])), /truncated/);
+if (process.argv.includes('--metadata-only')) {
+  await writeFile(path.join(out, 'metadata-smoke.json'), JSON.stringify({ metadataChecks }, null, 2) + '\n');
+  console.log(JSON.stringify({ metadataChecks }, null, 2));
+  process.exit(0);
+}
 const server = createServer((req, res) => {
   const media = req.url === '/media/orbit-demo.mp4' || req.url === '/motion.mp4';
   if (!['/', '/media.js', '/media/orbit-demo.mp4', '/motion.mp4'].includes(req.url)) { res.writeHead(404).end(); return; }
@@ -257,12 +288,13 @@ try {
   }, metadata);
   const { base64, movingBase64, ...measurements } = result;
   measurements.timelineChecks = timelineChecks;
+  measurements.metadataChecks = metadataChecks;
   await writeFile(path.join(out, 'orbit-corrected.mp4'), Buffer.from(base64, 'base64'));
   await writeFile(path.join(out, 'moving-corrected.mp4'), Buffer.from(movingBase64, 'base64'));
-  measurements.ffprobe = JSON.parse(execFileSync('ffprobe', [
-    '-v', 'error', '-show_entries', 'stream=codec_name,codec_type,avg_frame_rate,r_frame_rate,duration,start_time',
-    '-show_entries', 'format=duration', '-of', 'json', path.join(out, 'orbit-corrected.mp4'),
-  ], { encoding: 'utf8' }));
+  measurements.ffprobe = probe(path.join(out, 'orbit-corrected.mp4'));
+  assert.equal(spherical(measurements.ffprobe)?.projection, 'equirectangular');
+  measurements.movingSpherical = spherical(probe(path.join(out, 'moving-corrected.mp4')));
+  assert.equal(measurements.movingSpherical?.projection, 'equirectangular');
   await writeFile(path.join(out, 'media-smoke.json'), JSON.stringify(measurements, null, 2) + '\n');
   console.log(JSON.stringify(measurements, null, 2));
   assert.ok(result.mimeType.startsWith('video/mp4'));

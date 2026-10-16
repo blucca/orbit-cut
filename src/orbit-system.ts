@@ -1,5 +1,5 @@
 import {
-  CanvasTexture, createSystem, Entity, Euler, Grabbed, GrabSystem, Mesh,
+  CanvasTexture, createSystem, Entity, Grabbed, GrabSystem, Mesh,
   ShaderMaterial, SRGBColorSpace, Texture, UIKit, UIKitMLAsset,
   Vector3, VideoTexture, VisibilityState,
 } from '@iwsdk/core';
@@ -36,7 +36,10 @@ export class OrbitSystem extends createSystem({
   private reference!: ShaderMaterial;
   private videoTexture!: VideoTexture;
   private referenceTexture!: CanvasTexture;
-  private wheelAngles = new Euler(0, 0, 0, 'YXZ');
+  private holder: 'left' | 'right' | null = null;
+  private grabHeading = 0;
+  private grabYaw = 0;
+  private direction = new Vector3();
   private anchor = new Vector3();
   private head = new Vector3();
   private benchOffsetY = 0;
@@ -81,6 +84,9 @@ export class OrbitSystem extends createSystem({
       if (this.busy) { this.world.getSystem(GrabSystem)?.forceRelease(this.ring); return; }
       this.state.setValue(OrbitCutState, 'isDragging', true);
       const hand = this.world.getSystem(GrabSystem)?.getHolderHand(this.ring);
+      this.holder = hand ?? 'right';
+      this.grabHeading = this.heading(this.holder);
+      this.grabYaw = this.media.yawDegrees;
       const sources = this.world.renderer.xr.getSession()?.inputSources;
       const isHand = sources && Array.from(sources).some(source => source.handedness === hand && source.hand);
       this.state.setValue(OrbitCutState, 'inputKind', isHand ? 'hand-pinch' : 'controller');
@@ -88,6 +94,7 @@ export class OrbitSystem extends createSystem({
       void this.media.seek(Math.min(this.media.cutSeconds + 0.04, this.media.duration - 0.01)).catch(error => this.message(String(error)));
     }), this.queries.held.subscribe('disqualify', () => {
       this.state.setValue(OrbitCutState, 'isDragging', false);
+      this.holder = null;
     }));
 
     const fileInput = document.querySelector<HTMLInputElement>('#open-file')!;
@@ -133,11 +140,15 @@ export class OrbitSystem extends createSystem({
 
   private async captureReference(): Promise<void> {
     await this.media.seek(Math.max(0, this.media.cutSeconds - 0.05));
-    const canvas = this.referenceTexture.image as HTMLCanvasElement;
+    const canvas = document.createElement('canvas');
     canvas.width = this.media.video.videoWidth;
     canvas.height = this.media.video.videoHeight;
     canvas.getContext('2d')!.drawImage(this.media.video, 0, 0);
-    this.referenceTexture.needsUpdate = true;
+    // Texture dimensions are immutable after GPU allocation; replace on a new frame size.
+    this.referenceTexture.dispose();
+    this.referenceTexture = new CanvasTexture(canvas);
+    this.referenceTexture.colorSpace = SRGBColorSpace;
+    this.reference.uniforms.frame.value = this.referenceTexture;
     await this.media.seek(Math.min(this.media.cutSeconds + 0.05, this.media.duration - 0.01));
   }
 
@@ -146,6 +157,10 @@ export class OrbitSystem extends createSystem({
     this.state.setValue(OrbitCutState, 'mediaReady', false);
     try {
       if (file) await this.media.openFile(file); else await this.media.openDemo();
+      this.videoTexture.dispose();
+      this.videoTexture = new VideoTexture(this.media.video);
+      this.videoTexture.colorSpace = SRGBColorSpace;
+      this.preview.uniforms.frame.value = this.videoTexture;
       this.knownOffset = !file;
       this.state.setValue(OrbitCutState, 'sourceOffsetDegrees', file ? 0 : 55);
       await this.captureReference();
@@ -157,6 +172,11 @@ export class OrbitSystem extends createSystem({
       this.message(file ? `${file.name}: turn the wheel, then replay the cut.` : 'Synthetic practice film: pinch the orange wheel and line up the beacon.');
     } catch (error) { this.message(String(error)); }
     finally { this.busy = false; }
+  }
+
+  private heading(hand: 'left' | 'right'): number {
+    this.player.raySpaces[hand].getWorldDirection(this.direction);
+    return Math.atan2(this.direction.x, this.direction.z) * 180 / Math.PI;
   }
 
   private applyYaw(degrees: number): void {
@@ -222,9 +242,9 @@ export class OrbitSystem extends createSystem({
       this.anchor.y += offset - this.benchOffsetY;
       this.benchOffsetY = offset;
     }
-    if (!this.busy && this.queries.held.entities.has(this.ring)) {
-      this.wheelAngles.setFromQuaternion(this.ring.object3D!.quaternion, 'YXZ');
-      const yaw = this.wheelAngles.y * 180 / Math.PI;
+    if (!this.busy && this.holder && this.queries.held.entities.has(this.ring)) {
+      const delta = ((this.heading(this.holder) - this.grabHeading + 540) % 360) - 180;
+      const yaw = this.grabYaw + delta;
       if (Math.abs(yaw - this.media.yawDegrees) > 0.15) this.applyYaw(yaw);
       this.ring.object3D!.position.copy(this.anchor);
       this.ring.object3D!.rotation.set(0, this.media.yawDegrees * Math.PI / 180, 0);

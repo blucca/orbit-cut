@@ -25,6 +25,8 @@ jobs:
           node-version: '22'
       - name: Install exact dependencies and Chromium
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
           npm ci
           npx --no-install playwright install --with-deps chromium
       - name: Typecheck and real emulated interaction

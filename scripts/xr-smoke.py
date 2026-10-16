@@ -138,21 +138,23 @@ if __name__ == '__main__':
             yaw_before = key(state_before, 'yawDegrees')
             call(f'{mode}-aim', 'xr look-at', {'device': device, 'target': dict(zip(('x', 'y', 'z'), center))})
             pose = call(f'{mode}-pose', 'xr get-transform', {'device': device})
-            euler = key(pose, 'euler')
-            assert isinstance(euler, dict), 'Measured input pose missing'
+            q = key(pose, 'orientation')
+            assert isinstance(q, dict), 'Measured input pose missing'
             call(f'{mode}-hold', 'xr set-select-value', {'device': device, 'value': 1})
             time.sleep(.4)
             held = call(f'{mode}-held', 'ecs query', {'entityIndex': state_id})
             assert key(held, 'isDragging') is True, f'{mode} failed to grab through native input'
+            c, s = math.cos(math.radians(delta) / 2), math.sin(math.radians(delta) / 2)
             call(f'{mode}-rotate', 'xr set-transform', {'device': device, 'orientation': {
-                'pitch': euler['pitch'], 'yaw': euler['yaw'] + delta, 'roll': euler['roll']}})
+                'x': c*q['x'] + s*q['z'], 'y': c*q['y'] + s*q['w'],
+                'z': c*q['z'] - s*q['x'], 'w': c*q['w'] - s*q['y']}})
             time.sleep(.4)
             moved = call(f'{mode}-moved', 'ecs query', {'entityIndex': state_id})
             call(f'{mode}-release', 'xr set-select-value', {'device': device, 'value': 0})
             time.sleep(.4)
             final = call(f'{mode}-final', 'ecs query', {'entityIndex': state_id})
             yaw = key(final, 'yawDegrees')
-            assert abs(yaw - yaw_before) > 10, f'{mode} failed to change the image yaw'
+            assert abs(yaw - yaw_before - delta) < 2, f'{mode} yaw failed to track the actual input heading'
             assert abs(yaw - key(moved, 'yawDegrees')) < 1, 'Released correction did not hold'
             assert key(final, 'isDragging') is False, 'Native grab did not release'
             assert abs(key(final, 'previewYawDegrees') - yaw) < .2, 'Video preview did not use the edited yaw'
@@ -160,14 +162,53 @@ if __name__ == '__main__':
                 assert key(final, 'inputKind') == 'hand-pinch', 'Hand source was not observed'
             interactions.append({'input': mode, 'initial_yaw': yaw_before, 'final_yaw': yaw,
                                  'held': True, 'released': True, 'preview_yaw': key(final, 'previewYawDegrees')})
-        call('ui-final', 'ui inspect', {'entityIndex': panel_id})
-        call('runtime-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
+        assert key(final, 'aligned') is True, 'The two input rotations did not align the beacon'
+        aligned_yaw = key(final, 'yawDegrees')
+        call('ui-aligned', 'ui inspect', {'entityIndex': panel_id})
+        call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-aligned.png')))
+        hierarchy = call('runtime-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
+        def named_uuid(data, name):
+            if isinstance(data, dict):
+                if data.get('name') == name: return data['uuid']
+                for value in data.values():
+                    found = named_uuid(value, name)
+                    if found: return found
+            elif isinstance(data, list):
+                for value in data:
+                    found = named_uuid(value, name)
+                    if found: return found
+        def click(name):
+            uuid = named_uuid(hierarchy, name)
+            assert uuid, f'Runtime control {name} missing'
+            transform = call(f'{name}-transform', 'scene transform', {'uuid': uuid})
+            target = key(transform, 'positionRelativeToXROrigin')
+            assert target, 'XR-relative control position missing'
+            if isinstance(target, list): target = dict(zip(('x','y','z'), target))
+            call(f'{name}-aim', 'xr look-at', {'device': 'hand-right', 'target': target})
+            call(f'{name}-click', 'xr select', {'device': 'hand-right', 'duration': .2})
+        click('replay-cut')
+        played = call('state-replayed', 'ecs query', {'entityIndex': state_id})
+        assert key(played, 'cutCount') == 1, 'Real hand ray failed to replay the cut'
+        click('export-mp4')
+        deadline = time.monotonic() + 30
+        while True:
+            exported_ui = call('ui-exported', 'ui inspect', {'entityIndex': panel_id, 'selector': '#hint'})
+            export_text = key(exported_ui, 'text') or ''
+            if 'MP4 ready' in export_text: break
+            if time.monotonic() > deadline: raise TimeoutError(f'XR export did not finish: {export_text}')
+            time.sleep(2)
+        click('reset-yaw')
+        reset = call('state-reset', 'ecs query', {'entityIndex': state_id})
+        assert abs(key(reset, 'yawDegrees')) < .1, 'Reset failed to clear the correction'
+        assert key(reset, 'isDragging') is False
         assert key(call('xr-final', 'xr status', {}), 'sessionActive') is True
-        call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-final.png')))
-        call('console-final', 'browser logs', {'count': 30})
+        call('runtime-reset', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-final.png')))
+        console = call('console-final', 'browser logs', {'count': 40})
+        assert 'GL_INVALID_VALUE' not in json.dumps(console), 'GPU texture dimensions failed during media upload'
         receipt.update(runtime_gate_passed=True, media_ready=True, state_entity=state_id,
-                       interactions=interactions, final_yaw=key(final, 'yawDegrees'),
-                       aligned=key(final, 'aligned'), scope='Emulated hand/controller input; no physical Quest performance claim')
+                       interactions=interactions, aligned_yaw=aligned_yaw, aligned=True,
+                       replay_count=key(played, 'cutCount'), export_status=export_text, reset_yaw=key(reset, 'yawDegrees'),
+                       scope='Emulated hand/controller input and live XR export; no physical Quest performance claim')
     except Exception as error:
         receipt['error'] = f'{type(error).__name__}: {error}'
         try:

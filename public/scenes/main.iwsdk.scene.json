@@ -2,6 +2,10 @@
   "version": "iwsdk.scene.v1",
   "units": "meters",
   "components": {
+    "com.iwsdk.components.IBLGradient": {
+      "sky": [0.3, 0.35, 0.5, 1], "equator": [0.2, 0.22, 0.3, 1],
+      "ground": [0.1, 0.12, 0.2, 1], "intensity": 1
+    },
     "com.iwsdk.components.DomeGradient": {
       "sky": [0.020, 0.025, 0.072, 1],
       "equator": [0.052, 0.064, 0.139, 1],
@@ -35,14 +39,14 @@
     {
       "id": "orbit-yaw-ring", "name": "orbit-yaw-ring",
       "content": {"type": "asset", "asset": "yaw-wheel"},
-      "transform": {"position": [0, 1.12, -0.51]},
+      "transform": {"position": [0, 1.27, -0.60]},
       "components": {
         "WorkbenchPart": {}, "YawRing": {}, "RayInteractable": {},
         "DistanceGrabbable": {
           "movementMode": "RotateAtSource", "translate": false,
-          "rotate": true, "scale": false, "detachOnGrab": false
+          "rotate": false, "scale": false, "detachOnGrab": false
         },
-        "OneHandGrabbable": {"translate": false, "rotate": true}
+        "OneHandGrabbable": {"translate": false, "rotate": false}
       }
     },
     {

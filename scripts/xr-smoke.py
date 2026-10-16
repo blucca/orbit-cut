@@ -1,4 +1,4 @@
-"""Orbit Cut: real media, emulated controller and hand-pinch yaw interaction."""
+"""Orbit Cut: two-cut native input, fixed-viewpoint panorama, and MP4 export."""
 import json
 import math
 import os
@@ -117,42 +117,41 @@ if __name__ == '__main__':
             time.sleep(1)
         assert abs(key(initial, 'yawDegrees')) < .1
         assert key(initial, 'grabCount') == 0
+        assert key(initial, 'selectedCut') == 0 and key(initial, 'totalCuts') == 2
+        assert abs(key(initial, 'cutSeconds') - 4) < .01
         call('ui-assets', 'ui assets', {})
         call('ui-preview', 'ui render-preview', {'assetId': 'workbench-panel', 'width': 640, 'height': 360},
              extra=('--output-file', str(OUT / 'ui-preview.png')))
-        scene = call('scene-hero', 'scene render-file', {'path': 'public/scenes/main.iwsdk.scene.json', 'viewId': 'hero'},
+        scene = call('scene-hero', 'scene render-file', {'path': 'public/scenes/main.iwsdk.scene.json', 'viewId': 'hero', 'width': 512, 'height': 512},
                      extra=('--output-file', str(OUT / 'scene-hero.png')))
         assert key(scene, 'valid') is True, 'Scene validation failed'
+        assert {'optical-frame', 'orbit-yaw-ring', 'workbench-panel'} <= set(key(scene, 'visibleNodeIds') or []), 'A preserved workbench part is absent from the authored scene'
         call('scene-state', 'scene state', {})
         call('ui-initial', 'ui inspect', {'entityIndex': panel_id})
-        call('runtime-before', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-before.png')))
         interactions = []
-        for device, delta in [('controller-right', -25), ('hand-right', -30)]:
+        def rotate(label, device, delta):
             mode = 'hand' if device.startswith('hand') else 'controller'
-            if mode == 'hand':
-                call('hand-mode', 'xr set-input-mode', {'mode': 'hand'})
-                time.sleep(.4)
-            ring = call(f'{mode}-ring-before', 'ecs query', {'entityIndex': ring_id})
+            ring = call(f'{label}-ring-before', 'ecs query', {'entityIndex': ring_id})
             center = position(ring)
-            state_before = call(f'{mode}-state-before', 'ecs query', {'entityIndex': state_id})
+            state_before = call(f'{label}-state-before', 'ecs query', {'entityIndex': state_id})
             yaw_before = key(state_before, 'yawDegrees')
-            call(f'{mode}-aim', 'xr look-at', {'device': device, 'target': dict(zip(('x', 'y', 'z'), center))})
-            pose = call(f'{mode}-pose', 'xr get-transform', {'device': device})
+            call(f'{label}-aim', 'xr look-at', {'device': device, 'target': dict(zip(('x', 'y', 'z'), center))})
+            pose = call(f'{label}-pose', 'xr get-transform', {'device': device})
             q = key(pose, 'orientation')
             assert isinstance(q, dict), 'Measured input pose missing'
-            call(f'{mode}-hold', 'xr set-select-value', {'device': device, 'value': 1})
+            call(f'{label}-hold', 'xr set-select-value', {'device': device, 'value': 1})
             time.sleep(.4)
-            held = call(f'{mode}-held', 'ecs query', {'entityIndex': state_id})
+            held = call(f'{label}-held', 'ecs query', {'entityIndex': state_id})
             assert key(held, 'isDragging') is True, f'{mode} failed to grab through native input'
             c, s = math.cos(math.radians(delta) / 2), math.sin(math.radians(delta) / 2)
-            call(f'{mode}-rotate', 'xr set-transform', {'device': device, 'orientation': {
+            call(f'{label}-rotate', 'xr set-transform', {'device': device, 'orientation': {
                 'x': c*q['x'] + s*q['z'], 'y': c*q['y'] + s*q['w'],
                 'z': c*q['z'] - s*q['x'], 'w': c*q['w'] - s*q['y']}})
             time.sleep(.4)
-            moved = call(f'{mode}-moved', 'ecs query', {'entityIndex': state_id})
-            call(f'{mode}-release', 'xr set-select-value', {'device': device, 'value': 0})
+            moved = call(f'{label}-moved', 'ecs query', {'entityIndex': state_id})
+            call(f'{label}-release', 'xr set-select-value', {'device': device, 'value': 0})
             time.sleep(.4)
-            final = call(f'{mode}-final', 'ecs query', {'entityIndex': state_id})
+            final = call(f'{label}-final', 'ecs query', {'entityIndex': state_id})
             yaw = key(final, 'yawDegrees')
             assert abs(yaw - yaw_before - delta) < 2, f'{mode} yaw failed to track the actual input heading'
             assert abs(yaw - key(moved, 'yawDegrees')) < 1, 'Released correction did not hold'
@@ -160,12 +159,17 @@ if __name__ == '__main__':
             assert abs(key(final, 'previewYawDegrees') - yaw) < .2, 'Video preview did not use the edited yaw'
             if mode == 'hand':
                 assert key(final, 'inputKind') == 'hand-pinch', 'Hand source was not observed'
-            interactions.append({'input': mode, 'initial_yaw': yaw_before, 'final_yaw': yaw,
+            interactions.append({'input': mode, 'selected_cut': key(final, 'selectedCut'),
+                                 'initial_yaw': yaw_before, 'final_yaw': yaw,
                                  'held': True, 'released': True, 'preview_yaw': key(final, 'previewYawDegrees')})
+            return final
+
+        rotate('controller', 'controller-right', -25)
+        call('hand-mode', 'xr set-input-mode', {'mode': 'hand'})
+        time.sleep(.4)
+        final = rotate('hand', 'hand-right', -30)
         assert key(final, 'aligned') is True, 'The two input rotations did not align the beacon'
         aligned_yaw = key(final, 'yawDegrees')
-        call('ui-aligned', 'ui inspect', {'entityIndex': panel_id})
-        call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-aligned.png')))
         hierarchy = call('runtime-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
         def named_uuid(data, name):
             if isinstance(data, dict):
@@ -178,7 +182,11 @@ if __name__ == '__main__':
                     found = named_uuid(value, name)
                     if found: return found
         def click(name):
+            global hierarchy
             uuid = named_uuid(hierarchy, name)
+            if not uuid:
+                hierarchy = call(f'{name}-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
+                uuid = named_uuid(hierarchy, name)
             assert uuid, f'Runtime control {name} missing'
             transform = call(f'{name}-transform', 'scene transform', {'uuid': uuid})
             target = key(transform, 'positionRelativeToXROrigin')
@@ -186,10 +194,92 @@ if __name__ == '__main__':
             if isinstance(target, list): target = dict(zip(('x','y','z'), target))
             call(f'{name}-aim', 'xr look-at', {'device': 'hand-right', 'target': target})
             call(f'{name}-click', 'xr select', {'device': 'hand-right', 'duration': .2})
+
+        def cut_state(label, selected, seconds, yaw, reference, total=2):
+            # Native button clicks seek twice to refresh the reference image.
+            deadline = time.monotonic() + 10
+            while True:
+                data = call(label, 'ecs query', {'entityIndex': state_id})
+                if (key(data, 'selectedCut') == selected and key(data, 'totalCuts') == total
+                        and abs(key(data, 'cutSeconds') - seconds) < .02
+                        and abs(key(data, 'yawDegrees') - yaw) < 2
+                        and abs(key(data, 'referenceYawDegrees') - reference) < 2):
+                    return data
+                if time.monotonic() >= deadline:
+                    raise AssertionError(f'{label}: cut selection/time/yaw/reference did not settle')
+                time.sleep(.2)
+
+        click('cut-2')
+        second_initial = cut_state('state-second-initial', 1, 8, 0, aligned_yaw)
+        click('remove-cut')
+        cut_state('state-second-removed', 0, 4, aligned_yaw, 0, total=1)
+        click('add-cut')
+        added = cut_state('state-second-added', 1, 8, aligned_yaw, aligned_yaw)
+        click('earlier-frame')
+        earlier = cut_state('state-second-earlier', 1, 7.9, aligned_yaw, aligned_yaw)
+        click('later-frame')
+        later = cut_state('state-second-later', 1, 8, aligned_yaw, aligned_yaw)
+        second = rotate('second-hand', 'hand-right', 90)
+        assert key(second, 'aligned') is True, 'Second cut did not align to the corrected previous shot'
+        assert abs(key(second, 'yawDegrees') - 35) < 2
+        assert abs(key(second, 'referenceYawDegrees') - aligned_yaw) < .2
+        click('cut-1')
+        first_retained = cut_state('state-first-retained', 0, 4, aligned_yaw, 0)
+        click('cut-2')
+        second_retained = cut_state('state-second-retained', 1, 8, 35, aligned_yaw)
+        receipt['two_cut'] = {
+            'initial_second_yaw': key(second_initial, 'yawDegrees'),
+            'moved_seconds': [key(earlier, 'cutSeconds'), key(later, 'cutSeconds')],
+            'recreated_inherited_yaw': key(added, 'yawDegrees'),
+            'retained_yaws': [key(first_retained, 'yawDegrees'), key(second_retained, 'yawDegrees')],
+            'second_reference_yaw': key(second_retained, 'referenceYawDegrees'),
+            'native_add_remove': True, 'screenshot': 'xr-aligned.png',
+        }
+        call('ui-aligned', 'ui inspect', {'entityIndex': panel_id})
+        call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-aligned.png')))
         click('replay-cut')
         played = call('state-replayed', 'ecs query', {'entityIndex': state_id})
         assert key(played, 'cutCount') == 1, 'Real hand ray failed to replay the cut'
-        click('export-mp4')
+
+        click('review-panorama')
+        reviewing = call('state-review-start', 'ecs query', {'entityIndex': state_id})
+        assert key(reviewing, 'panoramaVisible') is True, 'Review button failed to open the panorama'
+        assert key(reviewing, 'activeShot') == 'shot-1', 'Full-film review did not start at the first shot'
+        deadline = time.monotonic() + 18
+        while key(reviewing, 'activeShot') != 'shot-3' or abs(key(reviewing, 'reviewYawDegrees') - 35) >= 2:
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Full-film review did not reach the corrected third shot')
+            time.sleep(.5)
+            reviewing = call('state-review-third-shot', 'ecs query', {'entityIndex': state_id})
+        head_before = call('panorama-head-before', 'xr get-transform', {'device': 'headset'})
+        click('review-original')
+        original = call('state-review-original', 'ecs query', {'entityIndex': state_id})
+        assert key(original, 'panoramaVisible') is True and key(original, 'correctedReview') is False
+        assert abs(key(original, 'reviewYawDegrees')) < .1
+        head_original = call('panorama-head-original', 'xr get-transform', {'device': 'headset'})
+        click('review-corrected')
+        corrected = call('state-review-corrected', 'ecs query', {'entityIndex': state_id})
+        assert key(corrected, 'panoramaVisible') is True and key(corrected, 'correctedReview') is True
+        assert abs(key(corrected, 'reviewYawDegrees') - 35) < 2
+        head_corrected = call('panorama-head-corrected', 'xr get-transform', {'device': 'headset'})
+        q_before = key(head_before, 'orientation')
+        assert isinstance(q_before, dict), 'Measured headset orientation missing'
+        for head in [head_original, head_corrected]:
+            q = key(head, 'orientation')
+            assert isinstance(q, dict), 'Measured headset orientation missing'
+            dot = sum(q_before[axis] * q[axis] for axis in ('x', 'y', 'z', 'w'))
+            assert abs(abs(dot) - 1) < 1e-5, 'A/B review moved the viewing direction'
+            assert max(abs(a - b) for a, b in zip(position(head_before), position(head))) < 1e-5
+        receipt['panorama'] = {
+            'original_yaw': key(original, 'reviewYawDegrees'),
+            'corrected_yaw': key(corrected, 'reviewYawDegrees'),
+            'same_viewpoint': True,
+            'headset_position': position(head_before),
+            'headset_orientations': [key(head, 'orientation') for head in [head_before, head_original, head_corrected]],
+            'screenshot': 'xr-panorama.png',
+        }
+        call('runtime-panorama', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-panorama.png')))
+        click('review-export')
         deadline = time.monotonic() + 30
         while True:
             exported_ui = call('ui-exported', 'ui inspect', {'entityIndex': panel_id, 'selector': '#hint'})
@@ -197,12 +287,19 @@ if __name__ == '__main__':
             if 'MP4 ready' in export_text: break
             if time.monotonic() > deadline: raise TimeoutError(f'XR export did not finish: {export_text}')
             time.sleep(2)
+        click('review-panorama')
+        cut_state('state-back-to-edit', 1, 8, 35, aligned_yaw)
         click('reset-yaw')
-        reset = call('state-reset', 'ecs query', {'entityIndex': state_id})
+        reset = cut_state('state-reset', 1, 8, 0, aligned_yaw)
         assert abs(key(reset, 'yawDegrees')) < .1, 'Reset failed to clear the correction'
         assert key(reset, 'isDragging') is False
+        assert key(reset, 'panoramaVisible') is False
+        click('cut-1')
+        retained_after_reset = cut_state('state-first-after-reset', 0, 4, aligned_yaw, 0)
+        receipt['two_cut'].update(reset_selected_yaw=key(reset, 'yawDegrees'),
+                                  retained_first_after_reset=key(retained_after_reset, 'yawDegrees'))
+        receipt['panorama']['export_status'] = export_text
         assert key(call('xr-final', 'xr status', {}), 'sessionActive') is True
-        call('runtime-reset', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-final.png')))
         console = call('console-final', 'browser logs', {'count': 40})
         assert 'GL_INVALID_VALUE' not in json.dumps(console), 'GPU texture dimensions failed during media upload'
         receipt.update(runtime_gate_passed=True, media_ready=True, state_entity=state_id,

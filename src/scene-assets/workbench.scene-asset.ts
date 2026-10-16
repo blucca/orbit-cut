@@ -1,6 +1,6 @@
 import {
-  BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial,
-  PlaneGeometry, TorusGeometry,
+  BackSide, BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial,
+  PlaneGeometry, SphereGeometry, TorusGeometry,
 } from '@iwsdk/core';
 
 const ink = new MeshBasicMaterial({ color: '#171b35' });
@@ -8,6 +8,13 @@ const frame = new MeshBasicMaterial({ color: '#292e50' });
 const tick = new MeshBasicMaterial({ color: '#8f93ad' });
 const orange = new MeshBasicMaterial({ color: '#f5a15e' });
 const paper = new MeshBasicMaterial({ color: '#f4ebd9' });
+
+// Inward-facing video surface, centered on the viewer; front is -Z, up is +Y.
+// Its runtime shader maps world-facing directions, so comparing takes never turns the viewer.
+export const panorama = new Mesh(new SphereGeometry(10, 64, 32),
+  new MeshBasicMaterial({ color: '#171b35', side: BackSide }));
+panorama.name = 'Panorama screen';
+panorama.visible = false;
 
 // Manufactured optical frame: origin at the viewport centers, front +Z, up +Y.
 // Envelope 0.64 x 0.245 x 0.025 m; the two windows share identical projection.

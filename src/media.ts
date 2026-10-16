@@ -1,10 +1,12 @@
 /** Local 2:1 equirectangular MP4 editing. Demo footage is explicitly synthetic. */
+type Cut = Readonly<{ seconds: number; yawDegrees: number }>;
+
 export class MediaSession {
   readonly video = document.createElement('video');
   ready = false;
-  yawDegrees = 0;
-  cutSeconds = 6;
 
+  private cutList: ReadonlyArray<Cut> = Object.freeze([Object.freeze({ seconds: 6, yawDegrees: 0 })]);
+  private cutIndex = 0;
   private objectUrl?: string;
   private recording = false;
   private exportMimeType = '';
@@ -28,6 +30,70 @@ export class MediaSession {
     return this.exportMimeType;
   }
 
+  get cuts(): ReadonlyArray<Cut> {
+    return this.cutList;
+  }
+
+  get selectedCutIndex(): number {
+    return this.cutIndex;
+  }
+
+  get cutSeconds(): number {
+    return this.cutList[this.cutIndex].seconds;
+  }
+
+  set cutSeconds(seconds: number) {
+    this.requireEditable();
+    this.requireReady();
+    if (!Number.isFinite(seconds) || seconds <= 0 || seconds >= this.duration) {
+      throw new Error('Place the cut inside the video, in seconds.');
+    }
+    const previous = this.cutList[this.cutIndex - 1];
+    const next = this.cutList[this.cutIndex + 1];
+    if ((previous && seconds < previous.seconds + 0.1) || (next && seconds > next.seconds - 0.1)) {
+      throw new Error('Keep cuts in order, at least 0.1 seconds apart.');
+    }
+    this.replaceCut({ seconds, yawDegrees: this.yawDegrees });
+  }
+
+  get yawDegrees(): number {
+    return this.cutList[this.cutIndex].yawDegrees;
+  }
+
+  get referenceYawDegrees(): number {
+    return this.cutIndex > 0 ? this.cutList[this.cutIndex - 1].yawDegrees : 0;
+  }
+
+  yawAt(seconds: number): number {
+    return yawAtTime(this.cutList, seconds);
+  }
+
+  selectCut(index: number): void {
+    this.requireEditable();
+    if (!Number.isInteger(index) || index < 0 || index >= this.cutList.length) {
+      throw new Error('Choose an existing cut.');
+    }
+    this.cutIndex = index;
+  }
+
+  addCut(): void {
+    this.requireEditable();
+    this.requireReady();
+    if (this.cutList.length >= 2) throw new Error('This workbench supports two cuts.');
+    const last = this.cutList[this.cutList.length - 1];
+    const seconds = (last.seconds + this.duration) / 2;
+    if (seconds < last.seconds + 0.1) throw new Error('Leave at least 0.2 seconds after the last cut before adding another.');
+    this.cutList = Object.freeze([...this.cutList, Object.freeze({ seconds, yawDegrees: last.yawDegrees })]);
+    this.cutIndex = this.cutList.length - 1;
+  }
+
+  removeCut(): void {
+    this.requireEditable();
+    if (this.cutList.length === 1) throw new Error('Keep at least one cut in the film.');
+    this.cutList = Object.freeze(this.cutList.filter((_cut, index) => index !== this.cutIndex));
+    this.cutIndex = Math.min(this.cutIndex, this.cutList.length - 1);
+  }
+
   async openDemo(): Promise<void> {
     const base = import.meta.env.BASE_URL;
     await this.open(`${base}media/orbit-demo.mp4`);
@@ -35,42 +101,46 @@ export class MediaSession {
   }
 
   async openFile(file: File): Promise<void> {
+    this.requireEditable();
     if (!file.size || !(/\.mp4$/i.test(file.name) || file.type === 'video/mp4')) {
       throw new Error('Choose an MP4 video with a 2:1 equirectangular image.');
     }
     await this.open(URL.createObjectURL(file), true);
-    this.cutSeconds = this.duration / 2;
   }
 
   setYaw(degrees: number): void {
+    this.requireEditable();
     if (!Number.isFinite(degrees)) throw new Error('Yaw must be a finite number.');
     // Positive yaw rolls image pixels to the right, toward positive longitude.
-    this.yawDegrees = ((degrees + 180) % 360 + 360) % 360 - 180;
+    this.replaceCut({ seconds: this.cutSeconds, yawDegrees: ((degrees + 180) % 360 + 360) % 360 - 180 });
   }
 
   async seek(seconds: number): Promise<void> {
     this.requireReady();
-    if (this.recording) throw new Error('Wait for the MP4 export to finish.');
+    this.requireEditable();
     if (!Number.isFinite(seconds)) throw new Error('Choose a finite video time.');
     this.video.pause();
     await seekVideo(this.video, Math.max(0, Math.min(seconds, this.duration - 0.001)));
   }
 
-  async playCut(): Promise<void> {
+  playCut(): Promise<void> {
+    return this.playFrom(Math.max(0, this.cutSeconds - 2));
+  }
+
+  async playFrom(seconds: number): Promise<void> {
     this.requireReady();
-    if (this.recording) throw new Error('Wait for the MP4 export to finish.');
+    this.requireEditable();
+    if (!Number.isFinite(seconds)) throw new Error('Choose a finite video time.');
     const resumed = this.audioContext?.resume();
-    const sought = this.seek(Math.max(0, this.cutSeconds - 2));
+    const sought = this.seek(seconds);
     this.video.muted = false;
     await Promise.all([resumed, sought, this.video.play()]);
   }
 
   async exportMp4(): Promise<Blob> {
     this.requireReady();
-    if (this.recording) throw new Error('An MP4 export is already running.');
-    if (!Number.isFinite(this.cutSeconds) || this.cutSeconds <= 0 || this.cutSeconds >= this.duration) {
-      throw new Error('Place the cut inside the video before exporting.');
-    }
+    this.requireEditable();
+    const cuts = this.cutList;
     const mimeType = [
       'video/mp4;codecs=avc1.420033,mp4a.40.2',
       'video/mp4',
@@ -116,11 +186,9 @@ export class MediaSession {
       // ponytail: real-time native recording, capped at 30 fps; use an offline pipeline for frame-exact mastering.
       stream = canvas.captureStream(30);
       for (const track of audioDestination.stream.getAudioTracks()) stream.addTrack(track);
-      const yaw = this.yawDegrees;
-      const cut = this.cutSeconds;
       const draw = (time: number) => {
         const width = canvas.width;
-        const shift = time >= cut ? ((Math.round(width * yaw / 360) % width) + width) % width : 0;
+        const shift = ((Math.round(width * yawAtTime(cuts, time) / 360) % width) + width) % width;
         context.drawImage(video, shift, 0, width, canvas.height);
         if (shift) context.drawImage(video, shift - width, 0, width, canvas.height);
       };
@@ -173,8 +241,9 @@ export class MediaSession {
       video.muted = oldMuted;
       video.volume = oldVolume;
       video.playbackRate = oldRate;
-      this.recording = false;
-      if (this.ready && !video.error) await seekVideo(video, oldTime);
+      try {
+        if (this.ready && !video.error) await seekVideo(video, oldTime);
+      } finally { this.recording = false; }
     }
   }
 
@@ -192,11 +261,16 @@ export class MediaSession {
     if (!this.ready) throw new Error('Load a 2:1 MP4 video first.');
   }
 
+  private requireEditable(): void {
+    if (this.recording) throw new Error('Wait for the MP4 export to finish.');
+  }
+
+  private replaceCut(cut: Cut): void {
+    this.cutList = Object.freeze(this.cutList.map((previous, index) => index === this.cutIndex ? Object.freeze(cut) : previous));
+  }
+
   private async open(url: string, owned = false): Promise<void> {
-    if (this.recording) {
-      if (owned) URL.revokeObjectURL(url);
-      throw new Error('Wait for the MP4 export to finish.');
-    }
+    this.requireEditable();
     this.ready = false;
     this.video.pause();
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
@@ -209,9 +283,19 @@ export class MediaSession {
     if (Math.abs(this.video.videoWidth / this.video.videoHeight - 2) > 0.05) {
       throw new Error('Choose a monoscopic 360° MP4 with a 2:1 equirectangular image.');
     }
+    this.cutList = Object.freeze([Object.freeze({ seconds: this.video.duration / 2, yawDegrees: 0 })]);
+    this.cutIndex = 0;
     this.ready = true;
-    this.yawDegrees = 0;
   }
+}
+
+function yawAtTime(cuts: ReadonlyArray<Cut>, seconds: number): number {
+  let yaw = 0;
+  for (const cut of cuts) {
+    if (seconds < cut.seconds) break;
+    yaw = cut.yawDegrees;
+  }
+  return yaw;
 }
 
 function mediaEvent(video: HTMLVideoElement, name: string): Promise<void> {

@@ -68,6 +68,12 @@
   },
   "nodes": [
     {
+      "id": "panorama-screen",
+      "name": "panorama-screen",
+      "content": { "type": "asset", "asset": "panorama-screen" },
+      "transform": { "position": [0, 1.6, 0] }
+    },
+    {
       "id": "orbit-cut-state",
       "name": "orbit-cut-state",
       "components": {
@@ -145,7 +151,7 @@
       "transform": {
         "position": [
           0,
-          1.77,
+          1.8,
           -0.76
         ]
       },

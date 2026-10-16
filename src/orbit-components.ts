@@ -12,6 +12,13 @@ export const OrbitCutState = createComponent('OrbitCutState', {
   cutCount: { type: Types.Int32, default: 0 },
   mediaReady: { type: Types.Boolean, default: false },
   previewYawDegrees: { type: Types.Float32, default: 0 },
+  selectedCut: { type: Types.Int32, default: 0 },
+  totalCuts: { type: Types.Int32, default: 1 },
+  cutSeconds: { type: Types.Float32, default: 6 },
+  referenceYawDegrees: { type: Types.Float32, default: 0 },
+  panoramaVisible: { type: Types.Boolean, default: false },
+  correctedReview: { type: Types.Boolean, default: true },
+  reviewYawDegrees: { type: Types.Float32, default: 0 },
 });
 
 export const YawRing = createComponent('YawRing', {});

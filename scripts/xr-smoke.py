@@ -90,6 +90,8 @@ if __name__ == '__main__':
         # Wait for the application's actual session offer, not transport alone.
         deadline = time.monotonic() + 90
         while True:
+            if 'Failed to load level' in (OUT / 'runtime.log').read_text()[-12000:]:
+                raise RuntimeError('Scene loading failed; see runtime.log and console-on-failure')
             status = call('xr-before', 'xr status', {})
             if key(status, 'sessionActive') is True or key(status, 'sessionOffered') is True:
                 break

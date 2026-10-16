@@ -42,7 +42,7 @@
           "movementMode": "RotateAtSource", "translate": false,
           "rotate": true, "scale": false, "detachOnGrab": false
         },
-        "OneHandGrabbable": {"translate": false, "rotate": true, "scale": false}
+        "OneHandGrabbable": {"translate": false, "rotate": true}
       }
     },
     {

@@ -39,7 +39,7 @@ def call(label, command, params=None, extra=(), required=True):
     if result.stderr:
         (OUT / f'{label}.stderr.log').write_text(result.stderr)
     try:
-        data = json.loads(result.stdout)
+        data = json.loads(result.stdout or result.stderr)
     except json.JSONDecodeError:
         raise RuntimeError(f'{label}: non-JSON CLI output; see saved receipt')
     if required and (result.returncode or data.get('ok') is False):
@@ -86,7 +86,16 @@ if __name__ == '__main__':
         else:
             raise TimeoutError('Runtime readiness exceeded 150 seconds')
 
-        status = call('xr-before', 'xr status', {})
+        # A command bridge appears before World.create finishes loading assets.
+        # Wait for the application's actual session offer, not transport alone.
+        deadline = time.monotonic() + 90
+        while True:
+            status = call('xr-before', 'xr status', {})
+            if key(status, 'sessionActive') is True or key(status, 'sessionOffered') is True:
+                break
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Application did not offer XR within 90 seconds')
+            time.sleep(3)
         if key(status, 'sessionActive') is not True:
             call('xr-enter', 'xr enter', {})
         status = call('xr-active', 'xr status', {})
@@ -121,7 +130,7 @@ if __name__ == '__main__':
     except Exception as error:
         receipt['error'] = f'{type(error).__name__}: {error}'
         try:
-            call('console-on-failure', 'browser console', {'count': 20}, required=False)
+            call('console-on-failure', 'browser logs', {'count': 20}, required=False)
         except Exception:
             pass
         raise

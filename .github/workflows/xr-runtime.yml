@@ -1,0 +1,43 @@
+name: XR runtime gate
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: xr-runtime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IWSDK_GPU: swiftshader
+      NODE_OPTIONS: --max-old-space-size=4096
+      TMPDIR: ${{ github.workspace }}/temp
+      npm_config_cache: ${{ github.workspace }}/temp/npm-cache
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/temp/pw-browsers
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p temp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact dependencies and Chromium
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+      - name: Typecheck and real emulated interaction
+        run: |
+          npm run --if-present typecheck
+          python3 scripts/xr-smoke.py
+      - name: Production build
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xr-runtime-evidence
+          retention-days: 7
+          path: |
+            temp/*.json
+            temp/*.png
+            temp/*.log
+            .iwsdk/runtime/logs/*.log

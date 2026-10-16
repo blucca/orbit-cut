@@ -6,11 +6,11 @@ Two matching lenses show the corrected previous shot and the video after a cut. 
 
 **A seated, two-cut workbench.** Follow the orange next-step button through alignment, panoramic review and export. The built-in twelve-second synthetic exercise shows your progress across cuts at 4 and 8 seconds, with source headings of 0°, +55°, and -35°. Open a local monoscopic 2:1 MP4 to work on your own footage, or try **Waterfall practice** for an attributed real-camera clip with an intentionally added cut. Video files are processed in the browser. [Media sources and modifications](public/media/SOURCES.md).
 
-[Open the workbench](https://blucca.github.io/orbit-cut/) · [Two-cut interaction and media receipt](docs/two-cut-proof.json) · [Real-camera export measurements](docs/real-media-proof.json) · [360 export recognition](docs/spherical-export-proof.json)
+[Open the workbench](https://blucca.github.io/orbit-cut/) · [Guided task and pause/resume receipt](docs/guided-task-proof.json) · [Real-camera export measurements](docs/real-media-proof.json) · [360 export recognition](docs/spherical-export-proof.json)
 
 Have a Quest and eight minutes? [Try the editing task and tell us where it gets awkward.](docs/quest-playtest.md)
 
-![Two independently aligned cuts, with the previous correction retained](docs/two-cut-workbench.png)
+![Two cuts aligned, with a clear next step and both corrections retained](docs/guided-workbench.png)
 
 ## Editing
 
@@ -24,7 +24,7 @@ Have a Quest and eight minutes? [Try the editing task and tell us where it gets 
 - **Pause**, leaving immersion, or switching away from the tab pauses work. **Continue** keeps the current film, cuts, selection and corrections; playback waits for you to press **Play**. Keep this tab open to retain the session.
 - Pausing an export stops it safely. Continue and choose **Export again** to make a complete MP4 from the retained edits.
 
-![Corrected panorama reviewed from the same viewing direction](docs/two-cut-panorama.png)
+![Corrected panorama reviewed from the same viewing direction](docs/guided-panorama.png)
 
 Review export uses the browser's native recorder, up to 30 fps. It prefers H.264/AAC when available; Chromium's tested fallback is an MP4 containing VP9/Opus. The exact format is shown after export. Exports carry explicit monoscopic equirectangular 360° metadata (Spatial Media v1). FFmpeg and MediaInfo recognize the projection, while native-browser checks retain playback, sound and seeks. The tagging step preserves encoded packets and timestamps. Frame-exact delivery and physical Quest performance remain quality milestones.
 

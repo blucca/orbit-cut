@@ -1,0 +1,271 @@
+{
+  "checked_at": "2026-10-17T07:44:14+08:00",
+  "source_commit": "914f58f074f95e633b42d6f888071e8a9083efa9",
+  "workflow": "https://github.com/blucca/orbit-cut/actions/runs/38982329107",
+  "scope": "Guided two-cut task and recoverable editing, exercised with emulated native hand input. Physical Quest performance and independent editor completion follow the public playtest.",
+  "runtime": {
+    "started_at": "2026-10-16T23:37:36Z",
+    "runtime_gate_passed": true,
+    "scene": "Orbit Cut optical workbench",
+    "rendering": "headless SwiftShader; browser XR emulator",
+    "guided_task": {
+      "input": "hand-pinch",
+      "completed_cuts": [
+        0,
+        1,
+        2
+      ],
+      "stages": [
+        "align",
+        "align",
+        "review",
+        "export",
+        "complete"
+      ],
+      "replay_count": 1,
+      "completed_screenshot": "xr-completed.png"
+    },
+    "pause_resume": {
+      "manual": {
+        "blocked_hand_rotation": true,
+        "blocked_cut_selection": true,
+        "selected_cut": 0,
+        "retained_yaw": -54.999996185302734,
+        "retained_reference": 0,
+        "screenshot": "xr-paused.png"
+      },
+      "visibility_scope": "Native XR exit/re-entry below; browser interact has no tab visibility or window-blur action.",
+      "export": {
+        "states": [
+          "exporting",
+          "interrupted",
+          "ready"
+        ],
+        "waited_for_continue": true,
+        "retained_cut_yaw_reference": true,
+        "pause_control_input": "hand select, 0.2 seconds; panel/UI before and after saved",
+        "retry_control": "task-next"
+      },
+      "xr_session": {
+        "exit_paused_work": true,
+        "reentry_input": "xr enter",
+        "retained_cut_yaw_reference": true,
+        "continued_with_hand": true
+      }
+    },
+    "two_cut": {
+      "initial_second_yaw": 0,
+      "moved_seconds": [
+        7.900000095367432,
+        8
+      ],
+      "recreated_inherited_yaw": -54.999996185302734,
+      "retained_yaws": [
+        -54.999996185302734,
+        35.000003814697266
+      ],
+      "second_reference_yaw": -54.999996185302734,
+      "native_add_remove": true,
+      "screenshot": "xr-aligned.png",
+      "reset_selected_yaw": 0,
+      "retained_first_after_reset": -54.999996185302734
+    },
+    "panorama": {
+      "original_yaw": 0,
+      "corrected_yaw": 35.000003814697266,
+      "same_viewpoint": true,
+      "headset_position": [
+        0,
+        1.600000023841858,
+        0
+      ],
+      "headset_orientations": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "screenshot": "xr-panorama.png",
+      "export_status": "360 MP4 ready (vp9,opus). Leave immersion to save again."
+    },
+    "media_ready": true,
+    "state_entity": 13,
+    "interactions": [
+      {
+        "input": "hand",
+        "selected_cut": 0,
+        "initial_yaw": 0,
+        "final_yaw": -54.999996185302734,
+        "held": true,
+        "blocked": false,
+        "released": true,
+        "preview_yaw": -54.999996185302734
+      },
+      {
+        "input": "hand",
+        "selected_cut": 0,
+        "initial_yaw": -54.999996185302734,
+        "final_yaw": -54.999996185302734,
+        "held": false,
+        "blocked": true,
+        "released": true,
+        "preview_yaw": -54.999996185302734
+      },
+      {
+        "input": "hand",
+        "selected_cut": 1,
+        "initial_yaw": -54.999996185302734,
+        "final_yaw": 35.000003814697266,
+        "held": true,
+        "blocked": false,
+        "released": true,
+        "preview_yaw": 35.000003814697266
+      }
+    ],
+    "aligned_yaw": -54.999996185302734,
+    "aligned": true,
+    "replay_count": 1,
+    "export_status": "360 MP4 ready (vp9,opus). Leave immersion to save again.",
+    "reset_yaw": 0,
+    "scope": "Emulated hand input, native XR exit/re-entry, and live XR export; physical Quest performance remains a device check",
+    "finished_at": "2026-10-16T23:39:25Z"
+  },
+  "media_interruption": {
+    "checks": [
+      {
+        "phase": "audio-resume",
+        "idleInterrupt": false,
+        "interrupted": true,
+        "outcome": {
+          "error": "MP4 export cancelled."
+        },
+        "elapsedMs": 0.29999999998835847,
+        "retained": true,
+        "paused": true,
+        "recorderStarted": false,
+        "activeRecorder": false,
+        "stopped": true,
+        "tracksStopped": true,
+        "settledInterrupt": false
+      },
+      {
+        "phase": "initial-seek",
+        "idleInterrupt": false,
+        "interrupted": true,
+        "outcome": {
+          "error": "MP4 export cancelled."
+        },
+        "elapsedMs": 0.09999999997671694,
+        "retained": true,
+        "paused": true,
+        "recorderStarted": false,
+        "activeRecorder": false,
+        "stopped": true,
+        "tracksStopped": true,
+        "settledInterrupt": false
+      },
+      {
+        "phase": "recording",
+        "idleInterrupt": false,
+        "interrupted": true,
+        "outcome": {
+          "error": "MP4 export cancelled."
+        },
+        "elapsedMs": 0.7999999999883585,
+        "retained": true,
+        "paused": true,
+        "recorderStarted": true,
+        "activeRecorder": true,
+        "stopped": true,
+        "tracksStopped": true,
+        "settledInterrupt": false
+      }
+    ],
+    "test_scope": "Audio-resume and initial-seek waits are deliberately held by the check; the recording phase uses the native MediaRecorder. All three reject the export, keep the source/cuts/selection/playhead, stop tracks, and allow a later complete export.",
+    "subsequent_export": {
+      "lastExportMimeType": "video/mp4;codecs=vp9,opus",
+      "exportedDuration": 12.004233,
+      "audioDuration": 11.92,
+      "movingSegmentPixelDifferences": [
+        0.980865478515625,
+        0.7849222819010416,
+        0.7357991536458334
+      ],
+      "movingDuration": 2.925733,
+      "movingAudioDuration": 2.8599773242630384,
+      "movingSpherical": {
+        "side_data_type": "Spherical Mapping",
+        "projection": "equirectangular",
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0
+      }
+    }
+  },
+  "public_entry": {
+    "at": "2026-10-17T07:41:02+08:00",
+    "url": "https://blucca.github.io/orbit-cut/",
+    "source_commit": "914f58f074f95e633b42d6f888071e8a9083efa9",
+    "rendering": "Published build; anonymous single-page headless Chromium with SwiftShader",
+    "status": 200,
+    "desktop": {
+      "message": "Pinch the orange wheel and turn. Match the subject in the two windows.",
+      "selectedCut": "4.0",
+      "hasCanvas": true,
+      "fileBarVisible": true,
+      "viewport": [
+        1000,
+        760
+      ]
+    },
+    "desktopPause": {
+      "selectedCut": "4.0",
+      "message": "Work paused. Your edits are kept in this tab. Select Continue to return.",
+      "fileEditingDisabled": true,
+      "continued": true
+    },
+    "mobile": {
+      "width": 390,
+      "scrollWidth": 390,
+      "entryVisible": true
+    },
+    "waterfallRegression": {
+      "message": "Pinch the orange wheel and turn. Match the subject in the two windows.",
+      "cut": "5.0",
+      "creditVisible": true
+    },
+    "pageErrors": [],
+    "passed": true
+  },
+  "visual_review": {
+    "compared_to": "docs/two-cut-workbench.png",
+    "method": "One 600-pixel-wide baseline/final contact sheet",
+    "result": "Objective, progress and orange next action are visible. Panel, reference windows and wheel remain fully framed and separated."
+  },
+  "first_run": {
+    "workflow": "https://github.com/blucca/orbit-cut/actions/runs/38981443258",
+    "result": "Guided alignment, manual pause/resume and panorama checks passed; the 0.2-second hand Pause during export did not trigger. The export later completed.",
+    "followup": "The application hides the video views and wheel during recording, then restores the previous mode. The second run kept the same 0.2-second select and additionally recorded panel/UI state before and after it; cancellation and retry passed."
+  },
+  "screenshots": {
+    "aligned": "guided-workbench.png",
+    "paused": "guided-paused.png",
+    "panorama": "guided-panorama.png",
+    "completed": "guided-completed.png"
+  },
+  "lifecycle_scope": "The observed immersive lifecycle is an emulated XR session exiting and re-entering. The page also subscribes to browser visibility and XR visibility changes; physical headset removal belongs to the device trial."
+}

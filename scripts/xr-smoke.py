@@ -1,4 +1,4 @@
-"""Orbit Cut: two-cut native input, fixed-viewpoint panorama, and MP4 export."""
+"""Orbit Cut: guided hand input, pause/resume, fixed-viewpoint review, and MP4 export."""
 import json
 import math
 import os
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         call('scene-state', 'scene state', {})
         call('ui-initial', 'ui inspect', {'entityIndex': panel_id})
         interactions = []
-        def rotate(label, device, delta):
+        def rotate(label, device, delta, blocked=False):
             mode = 'hand' if device.startswith('hand') else 'controller'
             ring = call(f'{label}-ring-before', 'ecs query', {'entityIndex': ring_id})
             center = position(ring)
@@ -142,7 +142,7 @@ if __name__ == '__main__':
             call(f'{label}-hold', 'xr set-select-value', {'device': device, 'value': 1})
             time.sleep(.4)
             held = call(f'{label}-held', 'ecs query', {'entityIndex': state_id})
-            assert key(held, 'isDragging') is True, f'{mode} failed to grab through native input'
+            assert key(held, 'isDragging') is (not blocked), f'{mode} grab state disagrees with pause state'
             c, s = math.cos(math.radians(delta) / 2), math.sin(math.radians(delta) / 2)
             call(f'{label}-rotate', 'xr set-transform', {'device': device, 'orientation': {
                 'x': c*q['x'] + s*q['z'], 'y': c*q['y'] + s*q['w'],
@@ -153,23 +153,23 @@ if __name__ == '__main__':
             time.sleep(.4)
             final = call(f'{label}-final', 'ecs query', {'entityIndex': state_id})
             yaw = key(final, 'yawDegrees')
-            assert abs(yaw - yaw_before - delta) < 2, f'{mode} yaw failed to track the actual input heading'
+            expected_delta = 0 if blocked else delta
+            assert abs(yaw - yaw_before - expected_delta) < (.1 if blocked else 2), f'{mode} yaw failed to respect input/pause state'
             assert abs(yaw - key(moved, 'yawDegrees')) < 1, 'Released correction did not hold'
             assert key(final, 'isDragging') is False, 'Native grab did not release'
             assert abs(key(final, 'previewYawDegrees') - yaw) < .2, 'Video preview did not use the edited yaw'
-            if mode == 'hand':
+            if blocked:
+                assert key(final, 'grabCount') == key(state_before, 'grabCount'), 'Paused hand input started a grab'
+            elif mode == 'hand':
                 assert key(final, 'inputKind') == 'hand-pinch', 'Hand source was not observed'
             interactions.append({'input': mode, 'selected_cut': key(final, 'selectedCut'),
                                  'initial_yaw': yaw_before, 'final_yaw': yaw,
-                                 'held': True, 'released': True, 'preview_yaw': key(final, 'previewYawDegrees')})
+                                 'held': not blocked, 'blocked': blocked, 'released': True,
+                                 'preview_yaw': key(final, 'previewYawDegrees')})
             return final
 
-        rotate('controller', 'controller-right', -25)
         call('hand-mode', 'xr set-input-mode', {'mode': 'hand'})
         time.sleep(.4)
-        final = rotate('hand', 'hand-right', -30)
-        assert key(final, 'aligned') is True, 'The two input rotations did not align the beacon'
-        aligned_yaw = key(final, 'yawDegrees')
         hierarchy = call('runtime-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
         def named_uuid(data, name):
             if isinstance(data, dict):
@@ -181,19 +181,35 @@ if __name__ == '__main__':
                 for value in data:
                     found = named_uuid(value, name)
                     if found: return found
-        def click(name):
+        def click(name, label=None):
             global hierarchy
+            label = label or name
             uuid = named_uuid(hierarchy, name)
             if not uuid:
-                hierarchy = call(f'{name}-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
+                hierarchy = call(f'{label}-hierarchy', 'scene runtime-hierarchy', {'maxDepth': 8})
                 uuid = named_uuid(hierarchy, name)
             assert uuid, f'Runtime control {name} missing'
-            transform = call(f'{name}-transform', 'scene transform', {'uuid': uuid})
+            transform = call(f'{label}-transform', 'scene transform', {'uuid': uuid})
             target = key(transform, 'positionRelativeToXROrigin')
             assert target, 'XR-relative control position missing'
             if isinstance(target, list): target = dict(zip(('x','y','z'), target))
-            call(f'{name}-aim', 'xr look-at', {'device': 'hand-right', 'target': target})
-            call(f'{name}-click', 'xr select', {'device': 'hand-right', 'duration': .2})
+            call(f'{label}-aim', 'xr look-at', {'device': 'hand-right', 'target': target})
+            call(f'{label}-click', 'xr select', {'device': 'hand-right', 'duration': .2})
+
+        def task_state(label, next_label=None, timeout=10, **expected):
+            deadline = time.monotonic() + timeout
+            while True:
+                data = call(label, 'ecs query', {'entityIndex': state_id})
+                if all(key(data, field) == value for field, value in expected.items()):
+                    if next_label is None:
+                        return data
+                    ui = call(f'{label}-next', 'ui inspect', {'entityIndex': panel_id, 'selector': '#task-next-label'})
+                    if key(ui, 'text') == next_label:
+                        return data
+                if time.monotonic() >= deadline:
+                    observed = {field: key(data, field) for field in expected}
+                    raise AssertionError(f'{label}: task state did not settle: {observed}; expected next={next_label}')
+                time.sleep(.2)
 
         def cut_state(label, selected, seconds, yaw, reference, total=2):
             # Native button clicks seek twice to refresh the reference image.
@@ -209,8 +225,43 @@ if __name__ == '__main__':
                     raise AssertionError(f'{label}: cut selection/time/yaw/reference did not settle')
                 time.sleep(.2)
 
-        click('cut-2')
+        guided_initial = task_state('task-initial', next_label='Replay cut', completedCuts=0,
+                                    taskStage='align', workPaused=False, exportState='idle')
+        click('task-next', 'guided-replay')
+        played = call('state-replayed', 'ecs query', {'entityIndex': state_id})
+        assert key(played, 'cutCount') == 1, 'Primary hand action failed to replay the first cut'
+        final = rotate('first-hand', 'hand-right', -55)
+        assert key(final, 'aligned') is True, 'Hand input did not align the first beacon'
+        aligned_yaw = key(final, 'yawDegrees')
+        first_done = task_state('task-first-done', next_label='Go to Cut 2', completedCuts=1,
+                                taskStage='align', workPaused=False)
+        receipt['guided_task'] = {'input': 'hand-pinch', 'completed_cuts': [0, 1],
+                                  'stages': [key(guided_initial, 'taskStage'), key(first_done, 'taskStage')],
+                                  'replay_count': key(played, 'cutCount')}
+
+        click('pause-work', 'manual-pause')
+        task_state('task-paused', next_label='Continue', completedCuts=1, taskStage='paused', workPaused=True)
+        rotate('paused-hand', 'hand-right', 15, blocked=True)
+        click('cut-2', 'paused-cut-selection')
+        paused = cut_state('state-paused-retained', 0, 4, aligned_yaw, 0)
+        assert key(paused, 'workPaused') is True and key(paused, 'completedCuts') == 1
+        call('runtime-paused', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-paused.png')))
+        click('task-next', 'manual-continue')
+        resumed = task_state('task-resumed', completedCuts=1, taskStage='align', workPaused=False)
+        assert key(resumed, 'selectedCut') == 0 and abs(key(resumed, 'yawDegrees') - aligned_yaw) < .1
+        assert abs(key(resumed, 'referenceYawDegrees')) < .1
+        receipt['pause_resume'] = {'manual': {'blocked_hand_rotation': True, 'blocked_cut_selection': True,
+                                            'selected_cut': key(resumed, 'selectedCut'),
+                                            'retained_yaw': key(resumed, 'yawDegrees'),
+                                            'retained_reference': key(resumed, 'referenceYawDegrees'),
+                                            'screenshot': 'xr-paused.png'},
+                                  'visibility_scope': 'Native XR exit/re-entry below; browser interact has no tab visibility or window-blur action.'}
+
+        click('task-next', 'guided-second-cut')
         second_initial = cut_state('state-second-initial', 1, 8, 0, aligned_yaw)
+        assert key(second_initial, 'completedCuts') == 1
+        # Preserve the existing boundary-editor regression inside its explicit disclosure.
+        click('cut-timing', 'timing-open')
         click('remove-cut')
         cut_state('state-second-removed', 0, 4, aligned_yaw, 0, total=1)
         click('add-cut')
@@ -219,10 +270,16 @@ if __name__ == '__main__':
         earlier = cut_state('state-second-earlier', 1, 7.9, aligned_yaw, aligned_yaw)
         click('later-frame')
         later = cut_state('state-second-later', 1, 8, aligned_yaw, aligned_yaw)
+        click('cut-timing', 'timing-close')
         second = rotate('second-hand', 'hand-right', 90)
         assert key(second, 'aligned') is True, 'Second cut did not align to the corrected previous shot'
         assert abs(key(second, 'yawDegrees') - 35) < 2
         assert abs(key(second, 'referenceYawDegrees') - aligned_yaw) < .2
+        second_done = task_state('task-second-done', next_label='Review in 360', completedCuts=2,
+                                 taskStage='review', workPaused=False)
+        receipt['guided_task']['completed_cuts'].append(key(second_done, 'completedCuts'))
+        receipt['guided_task']['stages'].append(key(second_done, 'taskStage'))
+        # The manual selection regression checks that both corrections survive revisiting.
         click('cut-1')
         first_retained = cut_state('state-first-retained', 0, 4, aligned_yaw, 0)
         click('cut-2')
@@ -237,14 +294,11 @@ if __name__ == '__main__':
         }
         call('ui-aligned', 'ui inspect', {'entityIndex': panel_id})
         call('runtime-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-aligned.png')))
-        click('replay-cut')
-        played = call('state-replayed', 'ecs query', {'entityIndex': state_id})
-        assert key(played, 'cutCount') == 1, 'Real hand ray failed to replay the cut'
-
-        click('review-panorama')
-        reviewing = call('state-review-start', 'ecs query', {'entityIndex': state_id})
+        click('task-next', 'guided-review')
+        reviewing = task_state('state-review-start', completedCuts=2, taskStage='export', workPaused=False)
         assert key(reviewing, 'panoramaVisible') is True, 'Review button failed to open the panorama'
         assert key(reviewing, 'activeShot') == 'shot-1', 'Full-film review did not start at the first shot'
+        receipt['guided_task']['stages'].append(key(reviewing, 'taskStage'))
         deadline = time.monotonic() + 18
         while key(reviewing, 'activeShot') != 'shot-3' or abs(key(reviewing, 'reviewYawDegrees') - 35) >= 2:
             if time.monotonic() >= deadline:
@@ -279,15 +333,53 @@ if __name__ == '__main__':
             'screenshot': 'xr-panorama.png',
         }
         call('runtime-panorama', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-panorama.png')))
-        click('review-export')
-        deadline = time.monotonic() + 30
-        while True:
-            exported_ui = call('ui-exported', 'ui inspect', {'entityIndex': panel_id, 'selector': '#hint'})
-            export_text = key(exported_ui, 'text') or ''
-            if 'MP4 ready' in export_text: break
-            if time.monotonic() > deadline: raise TimeoutError(f'XR export did not finish: {export_text}')
-            time.sleep(2)
-        click('review-panorama')
+
+        click('task-next', 'guided-export')
+        task_state('task-exporting', taskStage='exporting', exportState='exporting', workPaused=False)
+        click('pause-work', 'export-pause')
+        interrupted = task_state('task-export-interrupted', next_label='Continue', taskStage='paused',
+                                 exportState='interrupted', workPaused=True)
+        assert key(interrupted, 'selectedCut') == 1 and abs(key(interrupted, 'yawDegrees') - 35) < 2
+        assert abs(key(interrupted, 'referenceYawDegrees') - aligned_yaw) < .2
+        assert key(interrupted, 'panoramaVisible') is True
+        click('task-next', 'export-continue')
+        task_state('task-export-retry-ready', next_label='Export again', taskStage='export',
+                   exportState='interrupted', workPaused=False)
+        click('task-next', 'export-retry')
+        complete = task_state('task-complete', timeout=40, completedCuts=2, taskStage='complete',
+                              exportState='ready', workPaused=False)
+        exported_ui = call('ui-exported', 'ui inspect', {'entityIndex': panel_id, 'selector': '#hint'})
+        export_text = key(exported_ui, 'text') or ''
+        assert 'MP4 ready' in export_text, f'Completed export feedback missing: {export_text}'
+        receipt['guided_task']['stages'].append(key(complete, 'taskStage'))
+        receipt['guided_task']['completed_screenshot'] = 'xr-completed.png'
+        receipt['pause_resume']['export'] = {'states': ['exporting', 'interrupted', 'ready'],
+                                            'waited_for_continue': True, 'retained_cut_yaw_reference': True,
+                                            'retry_control': 'task-next'}
+        call('runtime-completed', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'xr-completed.png')))
+
+        call('xr-exit', 'xr exit', {})
+        exited = call('xr-exited', 'xr status', {})
+        assert key(exited, 'sessionActive') is False, 'XR session stayed active after exit'
+        task_state('task-after-xr-exit', taskStage='paused', workPaused=True, exportState='ready')
+        if key(exited, 'sessionOffered') is True:
+            call('xr-reenter', 'xr enter', {})
+            reentry_input = 'xr enter'
+        else:
+            call('xr-reenter-button', 'browser interact', {'steps': [
+                {'action': 'click', 'locator': {'role': 'button', 'name': 'Enter immersive workbench'}}]})
+            reentry_input = 'Enter immersive workbench button'
+        assert key(call('xr-reentered', 'xr status', {}), 'sessionActive') is True
+        reentered = task_state('task-after-xr-reentry', taskStage='paused', workPaused=True, exportState='ready')
+        for field in ('selectedCut', 'yawDegrees', 'referenceYawDegrees', 'completedCuts', 'panoramaVisible', 'correctedReview'):
+            assert key(reentered, field) == key(complete, field), f'XR re-entry lost {field}'
+        call('reentered-hand-mode', 'xr set-input-mode', {'mode': 'hand'})
+        click('task-next', 'xr-continue')
+        task_state('task-after-xr-continue', taskStage='complete', workPaused=False, exportState='ready')
+        receipt['pause_resume']['xr_session'] = {'exit_paused_work': True, 'reentry_input': reentry_input,
+                                                'retained_cut_yaw_reference': True, 'continued_with_hand': True}
+
+        click('task-next', 'guided-back-to-edit')
         cut_state('state-back-to-edit', 1, 8, 35, aligned_yaw)
         click('reset-yaw')
         reset = cut_state('state-reset', 1, 8, 0, aligned_yaw)
@@ -305,7 +397,7 @@ if __name__ == '__main__':
         receipt.update(runtime_gate_passed=True, media_ready=True, state_entity=state_id,
                        interactions=interactions, aligned_yaw=aligned_yaw, aligned=True,
                        replay_count=key(played, 'cutCount'), export_status=export_text, reset_yaw=key(reset, 'yawDegrees'),
-                       scope='Emulated hand/controller input and live XR export; no physical Quest performance claim')
+                       scope='Emulated hand input, native XR exit/re-entry, and live XR export; physical Quest performance remains a device check')
     except Exception as error:
         receipt['error'] = f'{type(error).__name__}: {error}'
         try:

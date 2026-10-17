@@ -1,0 +1,424 @@
+{
+  "recorded_at": "2026-10-17",
+  "source_commit": "ed28512c01562dc27f06d3fc30db898f2b90d4f9",
+  "source_workflow": "https://github.com/blucca/orbit-cut/actions/runs/38985776812",
+  "scope": "Chrome compositor recording of running IWER app. Native emulated hands; no application state edits. Editorial sequence moves the completed two-cut comparison before the second-cut walkthrough. Browser file-import shot opens a real run1 export from the same unchanged application implementation.",
+  "video": {
+    "url": "https://youtu.be/ADxue86FEWA",
+    "local_public_asset": "../public/demo/orbit-cut-demo.mp4",
+    "duration_seconds": 99.042667,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "codecs": [
+      "H.264",
+      "AAC"
+    ],
+    "captions": "../public/demo/captions.vtt"
+  },
+  "source_recording": {
+    "duration_seconds": 91.4,
+    "resolution": [
+      1000,
+      760
+    ],
+    "frames_per_second": 15,
+    "same_viewpoint": true,
+    "hand_inputs": "Native IWER hand pinch, selection and rotation; application state read for event logging.",
+    "events": [
+      {
+        "name": "initial-two-window-mismatch",
+        "video_seconds": 0.131,
+        "state": {
+          "selectedCut": 0,
+          "yawDegrees": 0,
+          "completedCuts": 0,
+          "taskStage": "align",
+          "workPaused": false,
+          "activeShot": "shot-2",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 0,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "first-cut-pinch-start",
+        "video_seconds": 5.057,
+        "state": {
+          "selectedCut": 0,
+          "yawDegrees": 0,
+          "completedCuts": 0,
+          "taskStage": "align",
+          "workPaused": false,
+          "activeShot": "shot-2",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 0,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "first-cut-aligned",
+        "video_seconds": 9.561,
+        "state": {
+          "selectedCut": 0,
+          "yawDegrees": -54.999996185302734,
+          "completedCuts": 1,
+          "taskStage": "align",
+          "workPaused": false,
+          "activeShot": "shot-2",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": -54.999996185302734,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "select-second-cut-select-start",
+        "video_seconds": 15.83
+      },
+      {
+        "name": "second-cut-before",
+        "video_seconds": 17.136,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 0,
+          "completedCuts": 1,
+          "taskStage": "align",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 0,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "second-cut-pinch-start",
+        "video_seconds": 21.135,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 0,
+          "completedCuts": 1,
+          "taskStage": "align",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 0,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "second-cut-aligned",
+        "video_seconds": 25.497,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "review",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 35.0000114440918,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "pause-work-select-start",
+        "video_seconds": 30.006
+      },
+      {
+        "name": "paused-edits-kept",
+        "video_seconds": 30.683,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "paused",
+          "workPaused": true,
+          "activeShot": "shot-3",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 35.0000114440918,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "continue-work-select-start",
+        "video_seconds": 35.192
+      },
+      {
+        "name": "continued-edits-kept",
+        "video_seconds": 35.849,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "review",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": false,
+          "correctedReview": true,
+          "reviewYawDegrees": 35.0000114440918,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "final-review-select-start",
+        "video_seconds": 40.316
+      },
+      {
+        "name": "whole-film-review",
+        "video_seconds": 41.136
+      },
+      {
+        "name": "review-original-select-start",
+        "video_seconds": 55.173
+      },
+      {
+        "name": "original-fixed-view",
+        "video_seconds": 55.873,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "export",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": true,
+          "correctedReview": false,
+          "reviewYawDegrees": 0,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "review-corrected-select-start",
+        "video_seconds": 62.267
+      },
+      {
+        "name": "corrected-fixed-view",
+        "video_seconds": 63.329,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "export",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": true,
+          "correctedReview": true,
+          "reviewYawDegrees": 35.0000114440918,
+          "exportState": "idle"
+        }
+      },
+      {
+        "name": "export-real-mp4-select-start",
+        "video_seconds": 69.929
+      },
+      {
+        "name": "export-started",
+        "video_seconds": 70.394
+      },
+      {
+        "name": "export-ready",
+        "video_seconds": 83.131,
+        "state": {
+          "selectedCut": 1,
+          "yawDegrees": 35.0000114440918,
+          "completedCuts": 2,
+          "taskStage": "complete",
+          "workPaused": false,
+          "activeShot": "shot-3",
+          "panoramaVisible": true,
+          "correctedReview": true,
+          "reviewYawDegrees": 35.0000114440918,
+          "exportState": "ready"
+        }
+      },
+      {
+        "name": "capture-finished",
+        "video_seconds": 91.395
+      }
+    ],
+    "actual_export": {
+      "bytes": 428980,
+      "mimeType": "video/mp4;codecs=vp9,opus",
+      "filename": "orbit-actual-xr-export.mp4"
+    }
+  },
+  "editing": [
+    {
+      "duration": 14,
+      "note": "First cut: the next shot turns while the previous shot stays as a reference.",
+      "shots": [
+        {
+          "file": "orbit-raw.mp4",
+          "start": 0.2,
+          "end": 14.2,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "duration": 12,
+      "note": "Comparison recorded after both cuts were aligned. Headset position and orientation are unchanged.",
+      "shots": [
+        {
+          "file": "orbit-raw.mp4",
+          "start": 55.95,
+          "end": 61.15,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        },
+        {
+          "file": "orbit-raw.mp4",
+          "start": 62,
+          "end": 68.8,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "duration": 17,
+      "note": "Second cut: the corrected previous shot becomes the reference. Both corrections are retained.",
+      "shots": [
+        {
+          "file": "orbit-raw.mp4",
+          "start": 12,
+          "end": 29,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "duration": 17,
+      "note": "The current tab retains the source, selected cut and both edits. Keep this tab open between sessions.",
+      "shots": [
+        {
+          "file": "orbit-raw.mp4",
+          "start": 29,
+          "end": 39.8,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "duration": 20,
+      "note": "Export section shown at 2\u00d7. The saved file is then reopened in the public browser preview.",
+      "capture_label": "Recorded app / export and native file import",
+      "shots": [
+        {
+          "file": "orbit-raw.mp4",
+          "start": 47,
+          "end": 49.5,
+          "speed": 1,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        },
+        {
+          "file": "orbit-raw.mp4",
+          "start": 69.8,
+          "end": 83.8,
+          "speed": 2,
+          "crop": [
+            1000,
+            632,
+            0,
+            64
+          ]
+        },
+        {
+          "file": "page@69509ca1c4b4c51d1a7e3de5d76d6f65.webm",
+          "start": 7.7,
+          "end": 14.7,
+          "speed": 1
+        }
+      ]
+    },
+    {
+      "duration": 19,
+      "note": "Waterfall camera film: Bernard Ladenthin, CC BY 4.0. Transcoded; direction jump added at 5 seconds.",
+      "capture_label": "Public browser preview / recorded file controls",
+      "footer": "Real camera exercise / Bernard Ladenthin, CC BY 4.0 / modified / synthesized narration",
+      "shots": [
+        {
+          "file": "page@69509ca1c4b4c51d1a7e3de5d76d6f65.webm",
+          "start": 14.1,
+          "end": 23.8,
+          "speed": 1
+        }
+      ]
+    }
+  ],
+  "browser_file_import": {
+    "workflow": "https://github.com/blucca/orbit-cut/actions/runs/38984035808",
+    "file": "orbit-actual-xr-export.mp4",
+    "bytes": 369778,
+    "note": "The file-import shot uses the first recording run\u2019s real export. That run\u2019s framebuffer video was black, so its video was replaced by the later compositor recording. Application implementation is identical."
+  },
+  "narration": "Amazon Polly Joanna neural; synthesized English narration",
+  "footage_credit": {
+    "author": "Bernard Ladenthin",
+    "title": "20180407 132600 Ess-Na-Crub Waterfall",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:20180407_132600_Ess-Na-Crub_Waterfall.webm",
+    "modification": "Transcoded and a direction jump added at five seconds."
+  },
+  "scope_limit": "Recorded browser emulation. Physical Quest testing and longer real-camera tasks are the next validation milestones.",
+  "playback_check": {
+    "ended": true,
+    "currentTime": 99.042667,
+    "duration": 99.042667,
+    "rate": 1,
+    "error": null,
+    "width": 1920,
+    "height": 1080,
+    "elapsed": 99.47,
+    "desktop": {
+      "width": 1440,
+      "overflow": false
+    },
+    "mobile": {
+      "width": 390,
+      "overflow": false
+    },
+    "page_errors": []
+  }
+}

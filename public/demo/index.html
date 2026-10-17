@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10152b">
+  <meta name="description" content="Watch a real hands-first editing session: align two 360° cuts, compare the view, pause, and export a corrected film with Orbit Cut.">
+  <title>Watch Orbit Cut — keep the story in view</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: dark; --ink:#10152b; --paper:#eef4f1; --orange:#ffa64f; --muted:#a8b9c8; --petrol:#173e3b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--ink); color:var(--paper); font:18px/1.6 'Trebuchet MS','Avenir Next',sans-serif; }
+    main { width:min(1280px,calc(100% - 48px)); margin:auto; padding:34px 0 64px; }
+    nav { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:48px; }
+    a { color:var(--orange); text-underline-offset:5px; }
+    a:hover { color:var(--paper); }
+    .brand { display:flex; align-items:center; gap:12px; color:var(--paper); font-size:24px; font-weight:bold; text-decoration:none; }
+    .brand svg { width:38px; height:38px; flex:none; }
+    h1 { font-size:clamp(42px,6.5vw,84px); line-height:1.08; letter-spacing:-.05em; margin:0; font-weight:700; max-width:12ch; }
+    .intro { display:flex; align-items:flex-end; justify-content:space-between; gap:40px; margin-bottom:34px; }
+    .intro p { color:var(--muted); max-width:38ch; margin:0 0 4px; font-size:20px; }
+    video { display:block; width:100%; background:#080c18; aspect-ratio:16 / 9; border-radius:4px; }
+    .caption { color:var(--muted); font-size:14px; margin:10px 0 30px; }
+    .next { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; padding:26px 0; }
+    .next p { margin:0; max-width:52ch; }
+    .button { display:inline-block; padding:12px 24px; border-radius:6px; font-weight:bold; color:var(--ink); background:var(--orange); text-decoration:none; white-space:nowrap; }
+    .button:hover { color:var(--ink); background:var(--paper); }
+    details { border-top:1px solid #35475b; padding-top:24px; margin-top:20px; max-width:78ch; }
+    summary { cursor:pointer; color:var(--orange); font-size:20px; }
+    details p { color:var(--muted); }
+    footer { margin-top:42px; font-size:14px; color:var(--muted); }
+    :focus-visible { outline:3px solid var(--orange); outline-offset:5px; }
+    @media(max-width:700px) { main { width:calc(100% - 28px); padding-top:22px; } nav { margin-bottom:34px; gap:12px; } nav > a:last-child { font-size:14px; } .intro { display:block; } .intro p { margin-top:22px; font-size:18px; } .brand { font-size:20px; } .next { align-items:flex-start; } }
+  </style>
+</head>
+<body>
+<main>
+  <nav aria-label="Project"><a class="brand" href="../"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15" fill="none" stroke="#ffa64f" stroke-width="4"/><path d="M20 9v22M9 20h22" stroke="#eef4f1" stroke-width="2"/><path d="M31 7l4 11-11-4" fill="#ffa64f"/></svg>Orbit Cut</a><a href="https://github.com/blucca/orbit-cut">Source &amp; editing guide</a></nav>
+  <section aria-labelledby="film-title">
+    <div class="intro"><h1 id="film-title">Keep the story in view.</h1><p>A 360° cut can send the subject out of sight. Turn the next shot into place, with your hands.</p></div>
+    <video controls playsinline preload="metadata" poster="poster.jpg" aria-label="Orbit Cut editing demonstration">
+      <source src="orbit-cut-demo.mp4" type="video/mp4">
+      <track kind="captions" src="captions.vtt" srclang="en" label="English">
+      <p><a href="orbit-cut-demo.mp4">Download the demonstration</a>.</p>
+    </video>
+    <p class="caption"><a href="https://youtu.be/ADxue86FEWA">Watch on YouTube</a>. Recorded in the running app using <a href="https://meta-quest.github.io/immersive-web-emulation-runtime">IWER, Meta's browser-based immersive emulator</a>, with scripted hand input. The file-import shots use the public browser preview. Edited for time; synthesized English narration. Physical Quest testing is the next device milestone.</p>
+  </section>
+  <section class="next" aria-label="Try the workbench"><p>Two cuts. One direction to follow.<br>Try the included film, or bring a local 2:1 MP4.</p><a class="button" href="../">Open Orbit Cut</a></section>
+  <details><summary>Read the film transcript</summary>
+    <p>In a 360-degree film, a cut can throw the subject behind your viewer. Orbit Cut lets an editor fix that jump from inside the film. Pinch the orange wheel and turn the next shot into place.</p>
+    <p>Compare Original and Corrected. The viewing direction stays fixed; the shot rotates. The viewer can keep following the story.</p>
+    <p>The workbench holds the corrected previous shot on the left and the next shot on the right. Follow the orange next-step button to the second cut. Each shot keeps its own correction. The practice tracks both cuts as you go.</p>
+    <p>Step away whenever you need to. Pause keeps the film, the chosen cut and both rotations. Continue returns to the same work. Leaving and re-entering immersion also preserves the current session while this tab stays open.</p>
+    <p>Review the full film around you, then export. Orbit Cut renders the changed video pixels and carries the soundtrack into a local MP4. Reopening the saved file shows the correction in the video itself. The file also carries explicit 360-degree projection metadata.</p>
+    <p>Bring a local two-to-one 360 clip, or try the attributed waterfall exercise. Your footage stays in the browser. Built with Meta's Immersive Web SDK, Orbit Cut is a seated editing workbench for storytellers. Open the preview and try two cuts.</p>
+  </details>
+  <footer>Built with Meta's Immersive Web SDK. <a href="https://github.com/blucca/orbit-cut/blob/main/docs/quest-playtest.md">Have eight minutes and a Quest?</a><br>Waterfall practice footage: Bernard Ladenthin, CC BY 4.0, modified for the editing exercise. <a href="../media/SOURCES.md">Sources and modifications</a>.</footer>
+</main>
+</body>
+</html>

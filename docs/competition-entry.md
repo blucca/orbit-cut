@@ -8,6 +8,8 @@
 - **Division:** New Experience
 - **Playable build:** https://blucca.github.io/orbit-cut/
 - **Source:** https://github.com/blucca/orbit-cut
+- **Demonstration video:** https://youtu.be/ADxue86FEWA
+- **Film and transcript:** https://blucca.github.io/orbit-cut/demo/
 - **Target launch:** November 17, 2026 — public WebXR beta. The public preview has been available since October 17, 2026.
 - **Built with:** Meta Immersive Web SDK, TypeScript, WebXR, Three.js, Web Audio, Canvas, MediaRecorder.
 
@@ -64,6 +66,7 @@ Built for the Meta VR Start Developer Competition 2026 — Productivity / New Ex
 
 ## Supporting material
 
+- [Film recording and edit provenance](demo-recording.json)
 - [Guided task, hand interaction and interruption recovery](guided-task-proof.json)
 - [Real-camera export measurements](real-media-proof.json)
 - [360° metadata and independent reader recognition](spherical-export-proof.json)

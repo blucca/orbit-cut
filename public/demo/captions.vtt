@@ -1,0 +1,90 @@
+WEBVTT
+
+1
+00:00:00.500 --> 00:00:05.649
+In a 360-degree film, a cut can throw the subject behind your viewer.
+
+2
+00:00:05.669 --> 00:00:09.549
+Orbit Cut lets an editor fix that jump from inside the film.
+
+3
+00:00:09.569 --> 00:00:12.620
+Pinch the orange wheel and turn the next shot into place.
+
+4
+00:00:14.500 --> 00:00:16.765
+Compare Original and Corrected.
+
+5
+00:00:16.785 --> 00:00:20.554
+The viewing direction stays fixed; the shot rotates.
+
+6
+00:00:20.574 --> 00:00:22.924
+The viewer can keep following the story.
+
+7
+00:00:26.500 --> 00:00:31.487
+The workbench holds the corrected previous shot on the left and the next shot on the right.
+
+8
+00:00:31.507 --> 00:00:34.926
+Follow the orange next-step button to the second cut.
+
+9
+00:00:34.946 --> 00:00:37.403
+Each shot keeps its own correction.
+
+10
+00:00:37.423 --> 00:00:39.892
+The practice tracks both cuts as you go.
+
+11
+00:00:43.500 --> 00:00:45.800
+Step away whenever you need to.
+
+12
+00:00:45.820 --> 00:00:49.763
+Pause keeps the film, the chosen cut and both rotations.
+
+13
+00:00:49.783 --> 00:00:52.388
+Continue returns to the same work.
+
+14
+00:00:52.408 --> 00:00:57.612
+Leaving and re-entering immersion also preserves the current session while this tab stays open.
+
+15
+00:01:00.500 --> 00:01:03.742
+Review the full film around you, then export.
+
+16
+00:01:03.762 --> 00:01:09.723
+Orbit Cut renders the changed video pixels and carries the soundtrack into a local MP4.
+
+17
+00:01:09.743 --> 00:01:13.835
+Reopening the saved file shows the correction in the video itself.
+
+18
+00:01:13.855 --> 00:01:18.596
+The file also carries explicit 360-degree projection metadata.
+
+19
+00:01:20.500 --> 00:01:26.454
+Bring a local two-to-one 360 clip, or try the attributed waterfall exercise.
+
+20
+00:01:26.474 --> 00:01:28.775
+Your footage stays in the browser.
+
+21
+00:01:28.795 --> 00:01:35.264
+Built with Meta's Immersive Web SDK, Orbit Cut is a seated editing workbench for storytellers.
+
+22
+00:01:35.284 --> 00:01:37.612
+Open the preview and try two cuts.
+

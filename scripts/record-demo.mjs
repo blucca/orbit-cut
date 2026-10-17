@@ -2,45 +2,20 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 // A recorder alongside the real renderer; application state is untouched.
-export default async function ({ frame, workspaceRoot }) {
-  const action = process.env.ORBIT_RECORD_ACTION ?? 'start';
+export default async function ({ frame, page, workspaceRoot }) {
+  const action = process.env.ORBIT_RECORD_ACTION ?? 'prepare';
   const out = process.env.ORBIT_DEMO_OUTPUT ?? path.join(workspaceRoot, 'temp', 'demo');
   await mkdir(out, { recursive: true });
-  if (action === 'start') {
-    return await frame.evaluate(() => {
-      if (window.__orbitCapture) throw new Error('A capture already exists');
-      const candidates = [...document.querySelectorAll('canvas')]
-        .filter(c => c.width && c.height && c.getBoundingClientRect().width > 0)
-        .sort((a, b) => b.width * b.height - a.width * a.height);
-      const canvas = candidates[0];
-      if (!canvas) throw new Error('Visible runtime canvas missing');
-      const stream = canvas.captureStream(15);
-      const mimeType = 'video/webm;codecs=vp8';
-      if (!MediaRecorder.isTypeSupported(mimeType)) throw new Error('VP8 capture unavailable');
-      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4000000 });
-      const capture = { recorder, stream, chunks: [], startedEpochMs: Date.now(),
-        width: canvas.width, height: canvas.height, source: 'Live IWSDK runtime WebGL canvas; IWER hand input' };
-      recorder.ondataavailable = event => { if (event.data.size) capture.chunks.push(event.data); };
-      window.__orbitCapture = capture;
-      recorder.start(1000);
-      return { startedEpochMs: capture.startedEpochMs, width: canvas.width, height: canvas.height,
-        mimeType, source: capture.source, canvasCount: candidates.length };
-    });
+  if (action === 'prepare') {
+    const runtime = page.locator('[data-workspace-view-button="runtime"]');
+    if (await runtime.count()) await runtime.click();
+    await page.waitForTimeout(600);
+    const element = await frame.frameElement();
+    return { clip: await element.boundingBox() };
   }
   const summary = await frame.evaluate(async (action) => {
     let blob;
-    if (action === 'stop') {
-      const capture = window.__orbitCapture;
-      if (!capture) throw new Error('Capture missing');
-      await new Promise((resolve, reject) => {
-        capture.recorder.onstop = resolve;
-        capture.recorder.onerror = reject;
-        capture.recorder.stop();
-      });
-      capture.stream.getTracks().forEach(track => track.stop());
-      blob = new Blob(capture.chunks, { type: capture.recorder.mimeType });
-      capture.chunks = [];
-    } else if (action === 'save-export') {
+    if (action === 'save-export') {
       const link = document.querySelector('#download');
       if (!link?.href.startsWith('blob:')) throw new Error('Actual application export missing');
       blob = await (await fetch(link.href)).blob();
@@ -58,7 +33,7 @@ export default async function ({ frame, workspaceRoot }) {
       await window.__orbitCaptureBlob.slice(offset, offset + 262144).arrayBuffer())), offset);
     buffers.push(Buffer.from(bytes));
   }
-  const filename = action === 'stop' ? 'orbit-raw.webm' : 'orbit-actual-xr-export.mp4';
+  const filename = 'orbit-actual-xr-export.mp4';
   await writeFile(path.join(out, filename), Buffer.concat(buffers));
   await frame.evaluate(() => { delete window.__orbitCaptureBlob; });
   return { ...summary, filename };

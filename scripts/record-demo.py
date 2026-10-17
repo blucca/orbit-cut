@@ -19,6 +19,7 @@ timeline = {'source': 'Live browser XR emulator; native hand-pinch/select comman
             'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
             'events': [], 'success': False}
 capture_zero = None
+recorder = None
 
 
 def mark(name, data=None):
@@ -50,6 +51,21 @@ def named_uuid(data, name):
 
 
 def capture(action):
+    global recorder
+    if action == 'start':
+        capture('prepare')
+        recorder = subprocess.Popen(['node', 'scripts/screencast.mjs'], cwd=ROOT,
+                                    stdout=(OUT / 'screencast.log').open('w'), stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + 25
+        while not (OUT / 'capture-start.json').exists():
+            if recorder.poll() is not None or time.monotonic() > deadline:
+                raise RuntimeError('Compositor recorder failed to start; see screencast.log')
+            time.sleep(.1)
+        return json.loads((OUT / 'capture-start.json').read_text())
+    if action == 'stop':
+        (OUT / 'capture-stop.request').touch()
+        assert recorder.wait(timeout=40) == 0, 'Compositor recorder failed; see screencast.log'
+        return json.loads((OUT / 'capture-stop.json').read_text())
     os.environ['ORBIT_RECORD_ACTION'] = action
     return call(f'capture-{action}', 'browser run scripts/record-demo.mjs')
 
@@ -151,28 +167,6 @@ try:
     assert key(first, 'completedCuts') == 1
     call('initial-aligned-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'first-aligned.png')))
 
-    click('review-panorama', 'first-review')
-    state('review-second-shot', activeShot='shot-2')
-    click('review-pause', 'freeze-second-shot')
-    frozen = state('review-frozen', activeShot='shot-2', panoramaVisible=True)
-    head_before = call('review-head-before', 'xr get-transform', {'device': 'headset'})
-    click('review-original')
-    original = state('review-original-state', correctedReview=False)
-    mark('original-fixed-view', original)
-    call('original-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'original.png')))
-    time.sleep(4)
-    click('review-corrected')
-    corrected = state('review-corrected-state', correctedReview=True)
-    head_after = call('review-head-after', 'xr get-transform', {'device': 'headset'})
-    assert key(head_before, 'orientation') == key(head_after, 'orientation')
-    assert position(head_before) == position(head_after)
-    assert abs(key(corrected, 'reviewYawDegrees') + 55) < 2
-    timeline['same_viewpoint'] = True
-    mark('corrected-fixed-view', corrected)
-    call('corrected-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'corrected.png')))
-    time.sleep(4)
-    click('review-panorama', 'back-to-workbench')
-    state('workbench-returned', panoramaVisible=False)
     click('task-next', 'select-second-cut')
     second_initial = state('second-initial', selectedCut=1, completedCuts=1)
     mark('second-cut-before', second_initial)
@@ -191,7 +185,25 @@ try:
     click('task-next', 'final-review')
     state('final-review-state', panoramaVisible=True)
     mark('whole-film-review')
-    time.sleep(12)
+    time.sleep(13)
+    # Compare the completed third shot: native end-of-film avoids a 4 s pause race.
+    state('review-ended', activeShot='shot-3', panoramaVisible=True)
+    head_before = call('review-head-before', 'xr get-transform', {'device': 'headset'})
+    click('review-original')
+    original = state('review-original-state', correctedReview=False, activeShot='shot-3')
+    mark('original-fixed-view', original)
+    call('original-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'original.png')))
+    time.sleep(4)
+    click('review-corrected')
+    corrected = state('review-corrected-state', correctedReview=True, activeShot='shot-3')
+    head_after = call('review-head-after', 'xr get-transform', {'device': 'headset'})
+    assert key(head_before, 'orientation') == key(head_after, 'orientation')
+    assert position(head_before) == position(head_after)
+    assert abs(key(corrected, 'reviewYawDegrees') - 35) < 2
+    timeline['same_viewpoint'] = True
+    mark('corrected-fixed-view', corrected)
+    call('corrected-image', 'browser screenshot', {}, extra=('--output-file', str(OUT / 'corrected.png')))
+    time.sleep(4)
     click('task-next', 'export-real-mp4')
     mark('export-started')
     ready = state('export-ready', timeout=65, exportState='ready', taskStage='complete')

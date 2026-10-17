@@ -10,6 +10,8 @@ Two matching lenses show the corrected previous shot and the video after a cut. 
 
 Have a Quest and eight minutes? [Try the editing task and tell us where it gets awkward.](docs/quest-playtest.md)
 
+**Try a real fifty-second flight:** [download the two-cut camera exercise, restore the landscape's direction, and compare the completed export.](docs/flight-practice.md) Includes the original soundtrack and measured native export/reopen results.
+
 ![Two cuts aligned, with a clear next step and both corrections retained](docs/guided-workbench.png)
 
 ## Editing

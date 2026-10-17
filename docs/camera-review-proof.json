@@ -1,0 +1,349 @@
+{
+  "completedAt": "2026-10-17T19:27:04.746897+00:00",
+  "applicationCommit": "bc96c2243f0fb09a7187b4b25fd88603b34c0199",
+  "scope": "One continuous real-camera 50-second source. Native media module check through actual file input/download/reopen; independent physical Quest use remains the separate playtest task.",
+  "source": {
+    "title": "2021 06 12 PARA 360 Tolmin SokoleONE 2 - UP Kangri",
+    "author": "Sokole ONE",
+    "license": "CC BY 3.0",
+    "url": "https://commons.wikimedia.org/wiki/File:2021_06_12_PARA_360_Tolmin_SokoleONE_2_-_UP_Kangri.webm",
+    "originalWebmContainerSeconds": 50.552,
+    "originalLastVideoEndSeconds": 49.767,
+    "practiceModifications": "Transcode to 1920\u00d7960 H.264/AAC. Add absolute horizontal shifts 0/+480/-480 pixels at 0/16/33 seconds. Preserve original soundtrack; artificial direction jumps are an editing exercise.",
+    "practicePreparationPixelChecks": [
+      {
+        "seconds": 1,
+        "requestedDegrees": 0.0,
+        "correctMae": 0.734765625,
+        "unrotatedMae": 0.734765625
+      },
+      {
+        "seconds": 25,
+        "requestedDegrees": 90.0,
+        "correctMae": 0.8974088541666667,
+        "unrotatedMae": 45.4012109375
+      },
+      {
+        "seconds": 44,
+        "requestedDegrees": -90.0,
+        "correctMae": 1.3711002604166667,
+        "unrotatedMae": 51.62348307291666
+      }
+    ],
+    "practiceBytes": 22773586
+  },
+  "completedExercise": {
+    "run": "restored",
+    "utc": "2026-10-17T19:22:19.799Z",
+    "errors": [],
+    "browser": "154.0.8037.97",
+    "sourceFile": "tolmin-flight-practice.mp4",
+    "sourceDuration": 50.54475,
+    "cuts": [
+      {
+        "seconds": 16,
+        "yawDegrees": -90
+      },
+      {
+        "seconds": 33,
+        "yawDegrees": 90
+      }
+    ],
+    "sourceNote": "Real camera practice by Sokole ONE (CC BY 3.0), with deliberate +90/-90 degree jumps at 16/33 seconds. Apply -90/+90 degrees to restore the original headings.",
+    "exportWallSeconds": 51.39530000007152,
+    "outputMime": "video/mp4;codecs=vp9,opus",
+    "outputBytes": 56132624,
+    "outputDuration": 50.480833,
+    "dimensions": [
+      1920,
+      960
+    ],
+    "samples": [
+      {
+        "seconds": 0.12,
+        "expectedMae": 2.6024934895833334,
+        "unrotatedMae": 2.6024934895833334
+      },
+      {
+        "seconds": 1,
+        "expectedMae": 2.0951302083333334,
+        "unrotatedMae": 2.0951302083333334
+      },
+      {
+        "seconds": 15.8,
+        "expectedMae": 2.1244075520833334,
+        "unrotatedMae": 2.1244075520833334
+      },
+      {
+        "seconds": 16.2,
+        "expectedMae": 2.4305078125,
+        "unrotatedMae": 47.722109375
+      },
+      {
+        "seconds": 25,
+        "expectedMae": 2.5864518229166666,
+        "unrotatedMae": 46.56901692708333
+      },
+      {
+        "seconds": 32.8,
+        "expectedMae": 1.3872330729166666,
+        "unrotatedMae": 45.24617838541667
+      },
+      {
+        "seconds": 33.2,
+        "expectedMae": 1.5410221354166667,
+        "unrotatedMae": 47.68035807291667
+      },
+      {
+        "seconds": 49.8,
+        "expectedMae": 1.3845638020833333,
+        "unrotatedMae": 50.32352213541667
+      },
+      {
+        "seconds": 50.28,
+        "expectedMae": 1.3845638020833333,
+        "unrotatedMae": 50.32352213541667
+      }
+    ],
+    "ended": true,
+    "endTime": 50.480833,
+    "playbackWallSeconds": 50.504,
+    "basicAcceptance": "passed"
+  },
+  "timingAgainstUnrotatedCameraInput": {
+    "run": "restored",
+    "method": "16 kHz mono, PCM anchored to PTS 0; normalized raw-waveform correlation over \u00b10.5 seconds. Video keeps decoded frame PTS, uses 160\u00d780 luma, known yaw, \u00b10.5-second nearest-image search. Positive lag = output later.",
+    "source": {
+      "containerSeconds": "50.544750",
+      "streams": [
+        {
+          "kind": "video",
+          "codec": "h264",
+          "packets": 1244,
+          "firstPts": 0.0,
+          "lastPts": 49.72,
+          "lastEnd": 49.76,
+          "largestPtsGap": 0.04000000000000625,
+          "streamStart": "0.000000",
+          "streamDuration": "49.760000",
+          "sideData": []
+        },
+        {
+          "kind": "audio",
+          "codec": "aac",
+          "packets": 2371,
+          "firstPts": -0.021333,
+          "lastPts": 50.538667,
+          "lastEnd": 50.54474999999999,
+          "largestPtsGap": 0.021334000000003073,
+          "streamStart": "0.000000",
+          "streamDuration": "50.544750",
+          "sideData": []
+        }
+      ]
+    },
+    "output": {
+      "containerSeconds": "50.480833",
+      "streams": [
+        {
+          "kind": "video",
+          "codec": "vp9",
+          "packets": 1132,
+          "firstPts": 0.0,
+          "lastPts": 49.7116,
+          "lastEnd": 49.711633,
+          "largestPtsGap": 0.110667,
+          "streamStart": "0.000000",
+          "streamDuration": "49.744900",
+          "sideData": [
+            {
+              "side_data_type": "Stereo 3D",
+              "type": "2D",
+              "inverted": 0,
+              "view": "packed",
+              "primary_eye": "none",
+              "baseline": 0,
+              "horizontal_disparity_adjustment": "0/1",
+              "horizontal_field_of_view": "0/1"
+            },
+            {
+              "side_data_type": "Spherical Mapping",
+              "projection": "equirectangular",
+              "yaw": 0,
+              "pitch": 0,
+              "roll": 0
+            }
+          ]
+        },
+        {
+          "kind": "audio",
+          "codec": "opus",
+          "packets": 842,
+          "firstPts": 0.0,
+          "lastPts": 50.459833,
+          "lastEnd": 50.480833000000004,
+          "largestPtsGap": 0.0659169999999989,
+          "streamStart": "0.000000",
+          "streamDuration": "50.480833",
+          "sideData": []
+        }
+      ]
+    },
+    "sourceDecodedAudioSeconds": 50.54475,
+    "outputDecodedAudioSeconds": 50.519,
+    "sourceAudioRms": 0.02373236811433435,
+    "outputAudioRms": 0.02374035772588373,
+    "audioWindows": [
+      {
+        "sourceWindow": [
+          2,
+          4
+        ],
+        "lagSeconds": 0.010187500000000016,
+        "correlation": 0.9990930466219967
+      },
+      {
+        "sourceWindow": [
+          24,
+          26
+        ],
+        "lagSeconds": 0.010187500000000016,
+        "correlation": 0.9992780094651695
+      },
+      {
+        "sourceWindow": [
+          43,
+          45
+        ],
+        "lagSeconds": 0.010187500000000016,
+        "correlation": 0.9989673406386317
+      }
+    ],
+    "videoWindows": [
+      {
+        "requestedOutputSeconds": 3,
+        "outputPts": 3.007767,
+        "matchedSourcePts": 3.04,
+        "lagSeconds": -0.03223300000000018,
+        "grayMae": 4.650859375
+      },
+      {
+        "requestedOutputSeconds": 25,
+        "outputPts": 24.9744,
+        "matchedSourcePts": 24.96,
+        "lagSeconds": 0.014399999999998414,
+        "grayMae": 4.613515625
+      },
+      {
+        "requestedOutputSeconds": 44,
+        "outputPts": 44.0051,
+        "matchedSourcePts": 44.0,
+        "lagSeconds": 0.005099999999998772,
+        "grayMae": 3.9678125
+      }
+    ],
+    "audioLateMinusEarlySeconds": 0.0,
+    "videoLateMinusEarlySeconds": 0.03733299999999895,
+    "audioMinusVideoLagSeconds": [
+      0.042420500000000194,
+      -0.004212499999998398,
+      0.005087500000001244
+    ]
+  },
+  "independentProjectionReader": {
+    "name": "MediaInfo CLI / MediaInfoLib 26.10",
+    "automaticSpatialRecognition": [
+      {
+        "Format": "Spherical Video",
+        "Spherical": "true",
+        "Stitched": "true",
+        "StitchingSoftware": "Orbit Cut",
+        "ProjectionType": "equirectangular"
+      }
+    ]
+  },
+  "firstMeasurement": {
+    "sourceDuration": 50.54475,
+    "cuts": [
+      {
+        "seconds": 16,
+        "yawDegrees": 90
+      },
+      {
+        "seconds": 33,
+        "yawDegrees": -90
+      }
+    ],
+    "exportWallSeconds": 51.7115,
+    "outputDuration": 50.480958,
+    "outputBytes": 57284305,
+    "outputMime": "video/mp4;codecs=vp9,opus",
+    "ended": true,
+    "basicAcceptance": "passed"
+  },
+  "firstMeasurementTiming": {
+    "audioWindows": [
+      {
+        "sourceWindow": [
+          2,
+          4
+        ],
+        "lagSeconds": 0.02081250000000001,
+        "correlation": 0.9988513185775397
+      },
+      {
+        "sourceWindow": [
+          24,
+          26
+        ],
+        "lagSeconds": 0.02081250000000001,
+        "correlation": 0.9990279230608724
+      },
+      {
+        "sourceWindow": [
+          43,
+          45
+        ],
+        "lagSeconds": 0.020874999999999977,
+        "correlation": 0.9988420906321703
+      }
+    ],
+    "videoWindows": [
+      {
+        "requestedOutputSeconds": 3,
+        "outputPts": 3.008233,
+        "matchedSourcePts": 3.04,
+        "lagSeconds": -0.03176699999999988,
+        "grayMae": 4.78578125
+      },
+      {
+        "requestedOutputSeconds": 25,
+        "outputPts": 24.9762,
+        "matchedSourcePts": 24.96,
+        "lagSeconds": 0.016199999999997772,
+        "grayMae": 4.806328125
+      },
+      {
+        "requestedOutputSeconds": 44,
+        "outputPts": 43.973633,
+        "matchedSourcePts": 44.0,
+        "lagSeconds": -0.026367000000000473,
+        "grayMae": 4.478203125
+      }
+    ],
+    "audioLateMinusEarlySeconds": 6.249999999996536e-05,
+    "videoLateMinusEarlySeconds": 0.005399999999999405
+  },
+  "measurementNotes": [
+    "The originally planned 47\u201349-second sound window is silent in the camera source. Its zero-energy correlation was discarded; the final audible 43\u201345-second window was used in both runs.",
+    "The original camera picture ends roughly 0.8 seconds before its soundtrack. The final held frame also appears in the input.",
+    "Audio lags are waveform estimates relative to the prepared source, not speech/lip judgments. These sampled audible windows show stable small startup offset; keep the stated single-host scope.",
+    "Video comparisons retain decoded PTS and use \u00b10.5-second matching windows at 3, 25 and 44 seconds. Native review recording has variable frame timing and fewer frames than the source.",
+    "Both saved files were opened through a fresh native file input/MediaSession and played at normal speed to ended=true. No application source changes were made for these runs."
+  ],
+  "apiSequence": "native input \u2192 MediaSession.openFile \u2192 cutSeconds=16, setYaw(-90) \u2192 addCut \u2192 cutSeconds=33, setYaw(90) \u2192 exportMp4 \u2192 browser download \u2192 new MediaSession/native input \u2192 source-time frame comparisons \u2192 normal-speed playback to ended",
+  "download": {
+    "practice": "https://github.com/blucca/orbit-cut/releases/download/camera-review-20261018/tolmin-flight-practice.mp4",
+    "completedNativeExport": "https://github.com/blucca/orbit-cut/releases/download/camera-review-20261018/tolmin-flight-restored-native.mp4"
+  }
+}

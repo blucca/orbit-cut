@@ -10,3 +10,13 @@
 - [Author](https://commons.wikimedia.org/wiki/User:Bernard_Ladenthin)
 - Orbit Cut transcoded the official 1920×960 WebM to H.264/AAC MP4. At 5 seconds, we deliberately introduced a 293-pixel horizontal wrap (54.9375 degrees) to make a practice cut. The original soundtrack and natural ten-second duration are retained.
 - The introduced cut and direction jump are editing exercises, separate from the original camera recording. Retain this attribution when sharing a derivative export.
+
+## Downloadable 50-second flight practice
+
+The [flight practice pack](https://github.com/blucca/orbit-cut/releases/tag/camera-review-20261018) is adapted from **2021 06 12 PARA 360 Tolmin SokoleONE 2 - UP Kangri**, by **Sokole ONE**, licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
+- [Original recording and license record on Wikimedia Commons](https://commons.wikimedia.org/wiki/File:2021_06_12_PARA_360_Tolmin_SokoleONE_2_-_UP_Kangri.webm) · [original YouTube publication](https://www.youtube.com/watch?v=NN1TQzL8j00).
+- `tolmin-flight-practice.mp4`: transcoded to 1920×960 H.264/AAC, with deliberate horizontal wraps of +480 pixels (+90°) at 16 seconds and −480 pixels (−90°) at 33 seconds. These are absolute segment headings, 0° / +90° / −90°. The camera recording is continuous; Orbit Cut added the direction jumps for practice.
+- `tolmin-flight-restored-native.mp4`: Orbit Cut's browser-native review export after applying −90° / +90° corrections to the two practice cuts. Contains VP9/Opus in MP4 with explicit equirectangular 360° metadata.
+- The original soundtrack is retained. The source picture ends about 0.8 seconds before its soundtrack; its final still frame and quiet sections are part of the source.
+- Suggested attribution for shared exports: “2021 06 12 PARA 360 Tolmin SokoleONE 2 - UP Kangri” by Sokole ONE, CC BY 3.0, via Wikimedia Commons. Adapted as a two-cut exercise and reoriented with Orbit Cut.

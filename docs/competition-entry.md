@@ -25,9 +25,11 @@ The built-in twelve-second film makes the task easy to reproduce: align the beac
 
 Open your own monoscopic 2:1 MP4, or use the attributed waterfall practice clip. Processing happens in your browser. Export renders the rotations into the video pixels, carries the soundtrack and adds explicit equirectangular 360° metadata. Save and reopen the result in Orbit Cut to review the changes in the file itself. FFmpeg and MediaInfo also recognize the exported projection.
 
+The [fifty-second flight exercise](flight-practice.md) provides a longer real-camera task: restore two deliberately changed headings, export the whole film with its soundtrack, and compare a completed native export. The downloadable sample includes its source license and measured export/reopen results.
+
 We built this new experience during the competition with TypeScript and Meta's Immersive Web SDK. [WebXR provides immersive sessions in the browser](https://iwsdk.dev/guides/02-testing-experience.html); the workbench combines hand interaction, per-shot video rotation and browser-native recording. Development used AI coding tools. Published interaction evidence uses [IWER, the SDK's browser-based immersive emulator](https://meta-quest.github.io/immersive-web-emulation-runtime), with emulated hand input. The current Chromium export path produces VP9/Opus review MP4s; compatible browsers can select H.264/AAC.
 
-The preview is live. Our target is a public WebXR beta on **November 17, 2026**. The next work combines an independent editor completing the full task on Quest 3/3S with longer real-camera reviews to improve export timing and audio endpoints. Their experience will guide the next iteration of the workbench.
+The preview is live. Our target is a public WebXR beta on **November 17, 2026**. The next work centers on an independent editor completing the full task on Quest 3/3S, including their own camera footage. Their task results and device measurements will guide the next iteration of the workbench.
 
 ## Hand interactions and the future of VR
 
@@ -69,6 +71,7 @@ Built for the Meta VR Start Developer Competition 2026 — Productivity / New Ex
 - [Film recording and edit provenance](demo-recording.json)
 - [Guided task, hand interaction and interruption recovery](guided-task-proof.json)
 - [Real-camera export measurements](real-media-proof.json)
+- [Fifty-second real-camera editing task and completed export](flight-practice.md)
 - [360° metadata and independent reader recognition](spherical-export-proof.json)
 - [Practice footage sources, licenses and modifications](../public/media/SOURCES.md)
 - Suggested gallery: [workbench](guided-workbench.png), [same-viewpoint panorama](guided-panorama.png), [completed task](guided-completed.png).

@@ -35,7 +35,7 @@ jobs:
         if: always()
         run: |
           if [ -f temp/demo/orbit-raw.webm ]; then
-            ffmpeg -hide_banner -y -i temp/demo/orbit-raw.webm -an -vf 'scale=1000:760:force_original_aspect_ratio=decrease,pad=1000:760:(ow-iw)/2:(oh-ih)/2' -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p -movflags +faststart temp/demo/orbit-raw.mp4
+            timeout 120 ffmpeg -hide_banner -y -i temp/demo/orbit-raw.webm -an -r 15 -vf 'scale=1000:760:force_original_aspect_ratio=decrease,pad=1000:760:(ow-iw)/2:(oh-ih)/2' -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p -movflags +faststart temp/demo/orbit-raw.mp4
             ffprobe -v error -show_streams -show_format -of json temp/demo/orbit-raw.mp4 > temp/demo/video-probe.json
           fi
       - uses: actions/upload-artifact@v4
@@ -45,6 +45,7 @@ jobs:
           retention-days: 7
           path: |
             temp/demo/*.mp4
+            temp/demo/*.webm
             temp/demo/*.json
             temp/demo/*.png
             temp/demo/*.log

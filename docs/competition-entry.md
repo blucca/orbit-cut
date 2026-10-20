@@ -1,5 +1,13 @@
 # Orbit Cut — competition entry
 
+## Representative submission guide
+
+1. Open [My projects for the Meta VR Start competition](https://devpost.com/submit-to/31024-meta-vr-start-developer-competition-2026/manage/submissions) and choose **Start project** or **Create project**.
+2. Copy the prepared fields and **Project description** below into the project. Select **Productivity / New Experience**. The public app, source, video and gallery images are ready. The remaining sections provide hand-interaction and judge-access answers if the form asks for them.
+3. Check the representative and Start membership details, complete the required confirmations, and use the final **Submit** action. Keep the resulting project URL and submitted confirmation.
+
+**Official deadline:** November 18, 2026 at noon Pacific / November 19 at 04:00 China Standard Time. The [rules](https://start-developer-competition-26.devpost.com/rules) accept XR Simulator or equivalent-emulator footage; the linked IWER recording meets that recording format. Independent Quest results can improve the device evidence during the entry period. The submission freezes when the entry period ends; the free playable build stays available through the winner announcement, expected December 11.
+
 ## Submission fields
 
 - **Name:** Orbit Cut

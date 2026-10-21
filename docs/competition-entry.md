@@ -1,6 +1,10 @@
 # Orbit Cut — competition entry
 
-## Representative submission guide
+## Submitted entry
+
+[Orbit Cut on Devpost](https://devpost.com/software/orbit-cut) was submitted on October 21, 2026. The playable build, demonstration and project story are public. The entry remains editable until the official deadline below.
+
+## Submission reference
 
 1. Open [My projects for the Meta VR Start competition](https://devpost.com/submit-to/31024-meta-vr-start-developer-competition-2026/manage/submissions) and choose **Start project** or **Create project**.
 2. Copy the prepared fields and **Project description** below into the project. Select **Productivity / New Experience**. The public app, source, video and gallery images are ready. The remaining sections provide hand-interaction and judge-access answers if the form asks for them.
